@@ -1,85 +1,224 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import HomePage from './pages/HomePage';
-import MeetingPage from './pages/MeetingPage';
-import CreateMeeting from './components/CreateMeeting';
-import JoinMeeting from './components/JoinMeeting';
-import Dashboard from './pages/Dashboard';
-import Calendar from './components/Calendar/Calendar';
-import Calls from './components/Calls/Calls';
-import Chat from './components/Chat/Chat';
-import SideNav from './components/SideNav';
-import Login from './components/Auth/Login';
-import Signup from './components/Auth/Signup';
-import Profile from './components/Profile/Profile';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import { 
+  ChakraProvider, 
+  extendTheme,
+  ColorModeScript,
+  Box 
+} from '@chakra-ui/react';
+import { 
+  BrowserRouter as Router, 
+  Routes, 
+  Route, 
+  Navigate, 
+  useNavigate 
+} from 'react-router-dom';
 
-const PrivateRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('user');
-  return isAuthenticated ? children : <Navigate to="/login" />;
+// Import components with full path to ensure correct import
+import SideNav from './components/SideNav.jsx';
+import Header from './components/Header/Header.jsx';
+import Footer from './components/Layout/Footer.jsx';
+
+// Pages and Components
+import HomePage from './pages/HomePage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import MeetingsPage from './pages/MeetingsPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
+import NotFoundPage from './pages/NotFoundPage.jsx';
+
+// Additional Components
+import Chat from './components/Chat/Chat.jsx';
+import Calls from './components/Calls/Calls.jsx';
+import Calendar from './components/Calendar/Calendar.jsx';
+import CreateMeeting from './components/CreateMeeting.jsx';
+import JoinMeeting from './components/JoinMeeting.jsx';
+
+// Custom theme configuration
+const theme = extendTheme({
+  config: {
+    initialColorMode: 'light',
+    useSystemColorMode: false,
+  },
+  styles: {
+    global: {
+      body: {
+        bg: 'gray.50',
+        color: 'gray.800',
+      }
+    }
+  }
+});
+
+// Authentication Context
+const AuthContext = React.createContext(null);
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const auth = React.useContext(AuthContext);
+  const location = useNavigate();
+
+  useEffect(() => {
+    if (!auth.isAuthenticated) {
+      location('/login');
+    }
+  }, [auth.isAuthenticated, location]);
+
+  return auth.isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function App() {
-  const isAuthenticated = localStorage.getItem('user');
+  const [user, setUser] = useState(() => {
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+
+  const login = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
+
+  const authContext = {
+    user,
+    isAuthenticated: !!user,
+    login,
+    logout
+  };
 
   return (
-    <Router>
-      <div className="app-container">
-        {isAuthenticated && <SideNav />}
-        <div className={`main-content ${isAuthenticated ? 'with-nav' : ''}`}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/" element={
-              <PrivateRoute>
-                <HomePage />
-              </PrivateRoute>
-            } />
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } />
-            <Route path="/calendar" element={
-              <PrivateRoute>
-                <Calendar />
-              </PrivateRoute>
-            } />
-            <Route path="/calls" element={
-              <PrivateRoute>
-                <Calls />
-              </PrivateRoute>
-            } />
-            <Route path="/chat" element={
-              <PrivateRoute>
-                <Chat />
-              </PrivateRoute>
-            } />
-            <Route path="/create-meeting" element={
-              <PrivateRoute>
-                <CreateMeeting />
-              </PrivateRoute>
-            } />
-            <Route path="/join-meeting" element={
-              <PrivateRoute>
-                <JoinMeeting />
-              </PrivateRoute>
-            } />
-            <Route path="/meeting/:roomId" element={
-              <PrivateRoute>
-                <MeetingPage />
-              </PrivateRoute>
-            } />
-            <Route path="/profile" element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            } />
-          </Routes>
-        </div>
-      </div>
-    </Router>
+    <AuthContext.Provider value={authContext}>
+      <ChakraProvider theme={theme}>
+        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+        <Router>
+          <Box display="flex" flexDirection="column" minHeight="100vh">
+            {/* Header */}
+            {authContext.isAuthenticated && (
+              <Header 
+                title="Teams Meeting" 
+                user={user}
+                onLogout={logout}
+              />
+            )}
+
+            {/* Main Content Area */}
+            <Box display="flex" flex={1}>
+              {/* Side Navigation */}
+              {authContext.isAuthenticated && <SideNav />}
+
+              {/* Routes */}
+              <Box 
+                className="main-content"
+                ml={authContext.isAuthenticated ? "280px" : "0"}
+                mt="4rem"
+                flex={1} 
+                p={6} 
+                bg="gray.50"
+              >
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+
+                  {/* Protected Routes */}
+                  <Route 
+                    path="/" 
+                    element={
+                      <ProtectedRoute>
+                        <HomePage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <HomePage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/chat" 
+                    element={
+                      <ProtectedRoute>
+                        <Chat />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/calendar" 
+                    element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/calls" 
+                    element={
+                      <ProtectedRoute>
+                        <Calls />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/create-meeting" 
+                    element={
+                      <ProtectedRoute>
+                        <CreateMeeting />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/join-meeting" 
+                    element={
+                      <ProtectedRoute>
+                        <JoinMeeting />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/meetings" 
+                    element={
+                      <ProtectedRoute>
+                        <MeetingsPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/profile" 
+                    element={
+                      <ProtectedRoute>
+                        <ProfilePage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  
+                  {/* 404 Route */}
+                  <Route 
+                    path="*" 
+                    element={
+                      <ProtectedRoute>
+                        <NotFoundPage />
+                      </ProtectedRoute>
+                    } 
+                  />
+                </Routes>
+              </Box>
+            </Box>
+
+            {/* Footer */}
+            {authContext.isAuthenticated && <Footer />}
+          </Box>
+        </Router>
+      </ChakraProvider>
+    </AuthContext.Provider>
   );
 }
 
+export { AuthContext };
 export default App;

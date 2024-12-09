@@ -49,10 +49,8 @@ app.use(express.json({
             JSON.parse(buf.toString());
         } catch (e) {
             res.status(400).json({ 
-                message: 'Invalid JSON payload',
-                error: e.message 
+                error: 'Invalid JSON'
             });
-            throw e;
         }
     }
 }));
@@ -61,22 +59,16 @@ app.use(express.urlencoded({
     limit: '10mb'
 }));
 
-// Logging Middleware with more detailed request logging
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-    
-    // Log request body for debugging
-    if (req.body && Object.keys(req.body).length > 0) {
-        console.log('Request Body:', req.body);
-    }
-    
-    next();
-});
-
-// Routes
-app.use('/api/auth', authRoutes);
+// Mount routes
+app.use('/api/users', authRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/chat', chatRoutes);
+
+// Logging middleware for debugging
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    next();
+});
 
 // Socket.IO Connection Handler
 io.on('connection', (socket) => {
@@ -104,7 +96,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// Error Handling Middleware
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({
@@ -120,27 +112,28 @@ app.use((req, res) => {
     });
 });
 
-// Server Configuration
-const PORT = process.env.PORT || 5001;
-const HOST = process.env.HOST || 'localhost';
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, 'client/build')));
+    
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    });
+}
+
+// Database and Server Initialization
+function startServer() {
+    const PORT = process.env.PORT || 5001;
+    const HOST = process.env.HOST || 'localhost';
+    
+    server.listen(PORT, HOST, () => {
+        console.log(`Server running at http://${HOST}:${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+}
 
 // Database Initialization and Server Start
-async function startServer() {
-    try {
-        // Initialize Database
-        // await initializeDatabase();
-        console.log('Database initialized successfully');
-
-        // Start server
-        server.listen(PORT, HOST, () => {
-            console.log(`Server running at http://${HOST}:${PORT}`);
-            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-        });
-    } catch (error) {
-        console.error('Failed to start server:', error);
-        process.exit(1);
-    }
-}
+startServer()
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -153,5 +146,4 @@ process.on('uncaughtException', (error) => {
     process.exit(1);
 });
 
-// Start the server
-startServer();
+module.exports = app;
