@@ -1,0 +1,223 @@
+.calls-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.calls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.calls-title h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #242424;
+}
+
+.calls-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  border-bottom: 2px solid transparent;
+}
+
+.tab.active {
+  color: #464EB8;
+  border-bottom: 2px solid #464EB8;
+}
+
+.view-contacts-btn {
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-bar {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.calls-content {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  overflow: auto;
+}
+
+.calls-section {
+  flex: 2;
+  border-right: 1px solid #e0e0e0;
+  padding-right: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h3 {
+  margin: 0;
+  color: #242424;
+}
+
+.section-header select {
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.call-history {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.call-item, .contact-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.call-item:hover, .contact-item:hover {
+  background-color: #f5f5f5;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 16px;
+}
+
+.call-info, .contact-info {
+  flex: 1;
+}
+
+.name {
+  font-weight: 500;
+  color: #242424;
+}
+
+.call-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.call-type {
+  display: flex;
+  align-items: center;
+}
+
+.call-type.missed {
+  color: #dc3545;
+}
+
+.call-actions, .contact-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.call-actions button, .contact-actions button {
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.call-actions button:hover, .contact-actions button:hover {
+  background-color: #e0e0e0;
+}
+
+.speed-dial {
+  flex: 1;
+}
+
+.speed-dial h3 {
+  margin: 0 0 16px 0;
+  color: #242424;
+}
+
+.contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status {
+  font-size: 12px;
+  color: #666;
+}
+
+.add-speed-dial {
+  width: 100%;
+  padding: 12px;
+  margin-top: 16px;
+  border: 1px dashed #e0e0e0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #464EB8;
+  transition: background-color 0.2s;
+}
+
+.add-speed-dial:hover {
+  background-color: #f5f5f5;
+}
+
+/* Scrollbar styling */
+.calls-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.calls-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.calls-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.calls-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

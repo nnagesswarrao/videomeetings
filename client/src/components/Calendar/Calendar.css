@@ -1,0 +1,167 @@
+.calendar-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.calendar-title h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #242424;
+}
+
+.calendar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.new-meeting-btn {
+  background: #464EB8 !important;
+  color: white;
+  border: none !important;
+}
+
+.calendar-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.calendar-navigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-navigation button {
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.current-month {
+  margin: 0 16px;
+  font-weight: 500;
+}
+
+.view-options select {
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: white;
+}
+
+.calendar-grid {
+  display: flex;
+  flex: 1;
+  overflow: auto;
+}
+
+.time-column {
+  width: 60px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.time-slot {
+  height: 60px;
+  padding: 8px;
+  text-align: right;
+  color: #666;
+  font-size: 12px;
+}
+
+.days-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.days-header {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.day-column-header {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-right: 1px solid #e0e0e0;
+}
+
+.day-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.day-date {
+  color: #666;
+}
+
+.time-slots-grid {
+  display: flex;
+  flex: 1;
+}
+
+.day-column {
+  flex: 1;
+  border-right: 1px solid #e0e0e0;
+}
+
+.grid-cell {
+  height: 60px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Hover effects */
+.grid-cell:hover {
+  background-color: #f5f5f5;
+}
+
+.calendar-actions button:hover {
+  background-color: #f5f5f5;
+}
+
+.new-meeting-btn:hover {
+  background-color: #3940a0 !important;
+}
+
+/* Scrollbar styling */
+.calendar-grid::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.calendar-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.calendar-grid::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.calendar-grid::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
