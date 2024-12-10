@@ -25,6 +25,7 @@
     "tailwindcss": "^3.3.6",
     "web-vitals": "^2.1.4"
   },
+  "proxy": "http://localhost:5001",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -48,6 +49,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "proxy": "http://localhost:5000"
+  }
 }

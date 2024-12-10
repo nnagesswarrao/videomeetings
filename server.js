@@ -6,7 +6,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
-
+var bodyParser = require('body-parser');
 // Load environment variables
 dotenv.config();
 
@@ -58,14 +58,16 @@ app.use(express.urlencoded({
     extended: true,
     limit: '10mb'
 }));
-
+app.use(bodyParser.json());
 // Mount routes
+
 app.use('/api/users', authRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Logging middleware for debugging
 app.use((req, res, next) => {
+  console.log(`===================`);
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
 });
@@ -98,6 +100,7 @@ io.on('connection', (socket) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  console.log("========")
     console.error(err.stack);
     res.status(500).json({
         message: 'Something went wrong!',

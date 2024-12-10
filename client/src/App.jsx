@@ -20,8 +20,8 @@ import Footer from './components/Layout/Footer.jsx';
 
 // Pages and Components
 import HomePage from './pages/HomePage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
+import Login from './components/Auth/Login.jsx';
+import Signup from './components/Auth/Signup.jsx';
 import MeetingsPage from './pages/MeetingsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
@@ -55,15 +55,12 @@ const AuthContext = React.createContext(null);
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const auth = React.useContext(AuthContext);
-  const location = useNavigate();
+  
+  if (!auth.isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-  useEffect(() => {
-    if (!auth.isAuthenticated) {
-      location('/login');
-    }
-  }, [auth.isAuthenticated, location]);
-
-  return auth.isAuthenticated ? children : <Navigate to="/login" />;
+  return children;
 };
 
 function App() {
@@ -121,8 +118,8 @@ function App() {
               >
                 <Routes>
                   {/* Public Routes */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Signup />} />
 
                   {/* Protected Routes */}
                   <Route 

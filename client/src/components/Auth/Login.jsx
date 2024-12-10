@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { AuthContext } from '../../App';
 import './Auth.css';
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -20,7 +22,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch('http://localhost:5001/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,10 +32,13 @@ const Login = () => {
       });
 
       const data = await response.json();
-      
+  
       if (response.ok) {
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/dashboard');
+        login(data.user); // Update auth context
+        console.log('Login successful, attempting navigation...');
+        navigate('/dashboard', { replace: true });
+        console.log(response.ok, response.status, "===============", data);
       } else {
         setError(data.message || 'Login failed');
       }
