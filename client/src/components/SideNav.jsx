@@ -32,7 +32,7 @@ const SideNav = () => {
       <div className="logo">
         <h2>{isExpanded ? 'Video Meeting' : 'VM'}</h2>
       </div>
-      
+{/*       
       {isExpanded && (
         <div className="calendar-widget">
           <Calendar
@@ -41,7 +41,7 @@ const SideNav = () => {
             className="mini-calendar"
           />
         </div>
-      )}
+      )} */}
 
       <nav className="menu-items">
         {menuItems.map((item) => (
