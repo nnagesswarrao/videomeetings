@@ -92,7 +92,7 @@ const NetworkQualityIndicator = ({ quality }) => {
 };
 
 // Participant Tile Component
-const ParticipantTile = React.forwardRef(({ stream, userName, isLocal }, ref) => {
+const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive }, ref) => {
   const videoRef = useRef(null);
   const { colorMode } = useColorMode();
   const [isMuted, setIsMuted] = useState(false);
@@ -149,6 +149,7 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal }, ref) =>
       boxShadow="lg"
       transition="all 0.2s"
       _hover={{ transform: 'scale(1.02)' }}
+      border={isActive ? '3px solid blue' : 'none'}
     >
       <video
         ref={displayRef}
@@ -212,31 +213,16 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal }, ref) =>
 });
 
 // Video Grid Layout Component
-const VideoGrid = ({ peers, stream, userVideo }) => {
+const VideoGrid = ({ peers, stream, userVideo, activeSpeakerId }) => {
   const { colorMode } = useColorMode();
-  const totalParticipants = peers.length + 1;
-  
-  // Calculate grid layout
-  const gridTemplateAreas = useMemo(() => {
-    switch(totalParticipants) {
-      case 1:
-        return '"main"';
-      case 2:
-        return '"main side"';
-      case 3:
-      case 4:
-        return '"main main" "side1 side2"';
-      default:
-        return '"main main main" "side1 side2 side3" "side4 side5 side6"';
-    }
-  }, [totalParticipants]);
+  const totalParticipants = peers.length + 1; // Including local user
 
   const gridTemplateColumns = useMemo(() => {
-    switch(totalParticipants) {
+    switch (totalParticipants) {
       case 1:
         return '1fr';
       case 2:
-        return '2fr 1fr';
+        return 'repeat(2, 1fr)';
       case 3:
       case 4:
         return 'repeat(2, 1fr)';
@@ -245,35 +231,47 @@ const VideoGrid = ({ peers, stream, userVideo }) => {
     }
   }, [totalParticipants]);
 
+  const gridTemplateRows = useMemo(() => {
+    if (totalParticipants <= 4) return 'repeat(2, 1fr)';
+    return 'repeat(3, 1fr)';
+  }, [totalParticipants]);
+
   return (
     <Grid
-      templateAreas={gridTemplateAreas}
       templateColumns={gridTemplateColumns}
+      templateRows={gridTemplateRows}
       gap={4}
       p={4}
       h="100%"
       bg={colorMode === 'dark' ? 'gray.800' : 'gray.100'}
     >
-      <GridItem area="main">
+      {/* Local user video */}
+      <GridItem>
         <ParticipantTile
           ref={userVideo}
           stream={stream}
           userName="You"
           isLocal={true}
+          isActive={activeSpeakerId === 'local'}
         />
       </GridItem>
-      {peers.map((peer, index) => (
-        <GridItem 
-          key={peer.peerId}
-          area={index === 0 && totalParticipants === 2 ? 'side' : `side${index + 1}`}
-        >
-          <ParticipantTile
-            stream={peer.peer.streams?.[0]}
-            userName={peer.userName}
-            isLocal={false}
-          />
-        </GridItem>
-      ))}
+
+      {/* Remote peer videos */}
+      {peers.map((peer, index) => {
+        // Safely access the peer's stream
+        const peerStream = peer?.peer?.streams?.[0] || null;
+        
+        return (
+          <GridItem key={peer.peerId || index}>
+            <ParticipantTile
+              stream={peerStream}
+              userName={peer.userName || `Participant ${index + 1}`}
+              isLocal={false}
+              isActive={activeSpeakerId === peer.peerId}
+            />
+          </GridItem>
+        );
+      })}
     </Grid>
   );
 };
@@ -384,12 +382,13 @@ const MeetingRoom = () => {
           peers={sortedParticipants.slice(1)}
           stream={sortedParticipants[0]?.stream}
           userVideo={userVideo}
+          activeSpeakerId={activeSpeakerId}
         />
       </Box>
     );
 
     return participantLayout;
-  }, [sortedParticipants, userVideo]);
+  }, [sortedParticipants, userVideo, activeSpeakerId]);
 
   // Setup audio level detection
   const setupAudioLevelDetection = useCallback((mediaStream) => {
@@ -448,221 +447,223 @@ const MeetingRoom = () => {
     fetchMeetingDetails();
   }, [roomId, navigate, toast]);
 
-  // Peer connection methods with improved logic
-  function createPeer(userToSignal, callerId, stream) {
-    console.log(`Creating peer for: 
-      User to Signal: ${userToSignal}, 
-      Caller ID: ${callerId}`);
-
-    const peer = new Peer({
-      initiator: true,
-      trickle: false,
-      stream: stream
-    });
-
-    peer.on('signal', signal => {
-      console.log(`Sending signal to: ${userToSignal}`);
-      socketRef.current.emit('sending-signal', { 
-        userToSignal, 
-        callerId, 
-        signal,
-        userName: userName
+  // Create peer connection
+  const createPeer = useCallback((userToSignal, callerId, stream) => {
+    try {
+      const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream
       });
-    });
 
-    peer.on('stream', remoteStream => {
-      console.log(`Received remote stream from: ${callerId}`);
-      // Update peer's stream in the peers state
-      setPeers(prevPeers => {
-        const peerToUpdate = prevPeers.find(p => p.peerId === userToSignal);
+      peer.on('signal', signal => {
+        socketRef.current?.emit('sending-signal', { 
+          userToSignal, 
+          callerId, 
+          signal,
+          userName 
+        });
+      });
+
+      peer.on('stream', stream => {
+        // Update peer's stream in peersRef
+        const peerToUpdate = peersRef.current.find(p => p.peerId === userToSignal);
         if (peerToUpdate) {
-          peerToUpdate.peer.streams = [remoteStream];
-          return [...prevPeers];
+          peerToUpdate.peer.streams = [stream];
+          // Force update of peers state to trigger re-render
+          setPeers([...peersRef.current]);
         }
-        return prevPeers;
       });
-    });
 
-    peer.on('error', err => {
-      console.error('Peer error:', err);
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect to peer",
-        status: "error",
-        duration: 3000
+      peer.on('error', error => {
+        console.error('Peer connection error:', error);
+        toast({
+          title: "Connection Error",
+          description: "Failed to connect to peer",
+          status: "error",
+          duration: 5000,
+          isClosable: true
+        });
       });
-    });
 
-    return peer;
-  }
+      return peer;
+    } catch (error) {
+      console.error('Error creating peer:', error);
+      return null;
+    }
+  }, [userName, toast]);
 
-  function addPeer(incomingSignal, callerId, stream, userName) {
-    console.log(`Adding peer: 
-      Caller ID: ${callerId}, 
-      User Name: ${userName}`);
-
-    const peer = new Peer({
-      initiator: false,
-      trickle: false,
-      stream: stream
-    });
-
-    peer.on('signal', signal => {
-      console.log(`Returning signal to: ${callerId}`);
-      socketRef.current.emit('returning-signal', { 
-        signal, 
-        callerId,
-        userName: userName
+  // Add peer connection
+  const addPeer = useCallback((incomingSignal, callerId, stream, peerUserName) => {
+    try {
+      const peer = new Peer({
+        initiator: false,
+        trickle: false,
+        stream
       });
-    });
 
-    peer.on('stream', remoteStream => {
-      console.log(`Received remote stream from: ${callerId}`);
-      // Update peer's stream in the peers state
-      setPeers(prevPeers => {
-        const peerToUpdate = prevPeers.find(p => p.peerId === callerId);
+      peer.on('signal', signal => {
+        socketRef.current?.emit('returning-signal', { signal, callerId });
+      });
+
+      peer.on('stream', stream => {
+        // Update peer's stream in peersRef
+        const peerToUpdate = peersRef.current.find(p => p.peerId === callerId);
         if (peerToUpdate) {
-          peerToUpdate.peer.streams = [remoteStream];
-          return [...prevPeers];
+          peerToUpdate.peer.streams = [stream];
+          // Force update of peers state to trigger re-render
+          setPeers([...peersRef.current]);
         }
-        return prevPeers;
       });
-    });
 
-    peer.on('error', err => {
-      console.error('Peer error:', err);
-      toast({
-        title: "Connection Error",
-        description: "Failed to connect to peer",
-        status: "error",
-        duration: 3000
+      peer.on('error', error => {
+        console.error('Peer connection error:', error);
       });
-    });
 
-    peer.signal(incomingSignal);
+      // Signal the peer
+      peer.signal(incomingSignal);
 
-    return peer;
-  }
+      return peer;
+    } catch (error) {
+      console.error('Error adding peer:', error);
+      return null;
+    }
+  }, []);
 
   // Setup WebRTC and Socket connection
   useEffect(() => {
     if (!meetingDetails) return;
 
-    socketRef.current = io('http://localhost:5001');
+    let localStream = null;
     
-    const setupMediaStream = async () => {
-
-
+    const setupSocketListeners = (stream) => {
+      socketRef.current = io('http://localhost:5001');
       
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: true 
-        });
-        
-        setupAudioLevelDetection(mediaStream);
-        
-        setStream(mediaStream);
-        if (userVideo.current) {
-          userVideo.current.srcObject = mediaStream;
-        }
-        
-        console.log('Joining room:', {
-          roomId, 
-          userName, 
-          meetingId: meetingDetails.id
-        });
+      // Join room after getting media stream
+      socketRef.current.emit('join-room', {
+        roomId,
+        userName,
+        peerId: socketRef.current.id
+      });
 
-        socketRef.current.emit('join-room', {
-          roomId, 
-          userName, 
-          meetingId: meetingDetails.id
-        });
-        
-        socketRef.current.on('all-users', users => {
-          console.log('Received all users:', users);
-          
-          const newPeers = users.map(user => {
-            console.log(`Creating peer for user: ${user.userName}`);
-            const peer = createPeer(user.socketId, socketRef.current.id, mediaStream);
-            
-            return {
+      // Listen for existing users in the room
+      socketRef.current.on('all-users', users => {
+        console.log('Received all users:', users);
+        const peers = [];
+        users.forEach(user => {
+          console.log(`Creating peer for user: ${user.userName}`);
+          const peer = createPeer(user.socketId, socketRef.current.id, stream);
+          if (peer) {
+            peersRef.current.push({
               peerId: user.socketId,
               peer,
               userName: user.userName
-            };
-          });
-
-          setPeers(newPeers);
-          peersRef.current = newPeers;
+            });
+            peers.push({
+              peerId: user.socketId,
+              peer,
+              userName: user.userName
+            });
+          }
         });
+        console.log('Setting peers:', peers);
+        setPeers(peers);
+      });
 
-        socketRef.current.on('user-joined', payload => {
-          console.log('User joined:', payload);
-          
-          const peer = addPeer(
-            payload.signal, 
-            payload.callerId, 
-            mediaStream, 
-            payload.userName
-          );
-
+      // Listen for new users joining
+      socketRef.current.on('user-joined', payload => {
+        console.log('New user joined:', payload);
+        const peer = addPeer(payload.signal, payload.callerId, stream, payload.userName);
+        if (peer) {
           const peerObj = {
             peerId: payload.callerId,
             peer,
             userName: payload.userName
           };
+          peersRef.current.push(peerObj);
+          setPeers(users => [...users, peerObj]);
+          console.log('Updated peers after user joined:', peersRef.current);
+        }
+      });
 
-          setPeers(prevPeers => {
-            const updatedPeers = [...prevPeers, peerObj];
-            peersRef.current = updatedPeers;
-            return updatedPeers;
-          });
-        });
+      // Handle returned signals
+      socketRef.current.on('receiving-returned-signal', payload => {
+        console.log('Received returned signal from:', payload.id);
+        const item = peersRef.current.find(p => p.peerId === payload.id);
+        if (item && item.peer) {
+          item.peer.signal(payload.signal);
+        }
+      });
 
-        socketRef.current.on('receiving-returned-signal', payload => {
-          console.log('Received returned signal:', payload);
-          const item = peersRef.current.find(p => p.peerId === payload.id);
-          if (item) {
-            item.peer.signal(payload.signal);
-          }
-        });
+      // Handle user disconnection
+      socketRef.current.on('user-left', userId => {
+        console.log('User left:', userId);
+        const peerToRemove = peersRef.current.find(p => p.peerId === userId);
+        if (peerToRemove && peerToRemove.peer) {
+          peerToRemove.peer.destroy();
+        }
+        const remainingPeers = peersRef.current.filter(p => p.peerId !== userId);
+        peersRef.current = remainingPeers;
+        setPeers(remainingPeers);
+      });
+    };
 
-        socketRef.current.on('user-left', userId => {
-          console.log('User left:', userId);
-          const peerToRemove = peersRef.current.find(p => p.peerId === userId);
-          if (peerToRemove) {
-            peerToRemove.peer.destroy();
-          }
+    const setupMediaStream = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const audioDevices = devices.filter(device => device.kind === 'audioinput');
 
-          const filteredPeers = peersRef.current.filter(p => p.peerId !== userId);
-          peersRef.current = filteredPeers;
-          setPeers(filteredPeers);
-        });
+        const constraints = {
+          video: videoDevices.length > 0 ? { deviceId: videoDevices[0].deviceId } : false,
+          audio: audioDevices.length > 0 ? { deviceId: audioDevices[0].deviceId } : false
+        };
+
+        console.log('Getting user media with constraints:', constraints);
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('Got media stream:', mediaStream);
+        
+        localStream = mediaStream;
+        setStream(mediaStream);
+        
+        if (userVideo.current) {
+          userVideo.current.srcObject = mediaStream;
+        }
+
+        setupAudioLevelDetection(mediaStream);
+        setupSocketListeners(mediaStream);
 
       } catch (error) {
         console.error('Media stream setup error:', error);
         toast({
-          title: "Media Access Error",
-          description: "Could not access camera or microphone",
+          title: "Media Device Error",
+          description: error.message || "Could not access camera or microphone",
           status: "error",
-          duration: 3000,
-          isClosable: true,
-          icon: <FaExclamationTriangle />
+          duration: 5000,
+          isClosable: true
         });
       }
     };
 
     setupMediaStream();
 
+
+    // Cleanup function
     return () => {
-      peersRef.current.forEach(({ peer }) => {
-        peer.destroy();
+      console.log('Cleaning up connections...');
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      peersRef.current.forEach(peer => {
+        if (peer.peer) {
+          peer.peer.destroy();
+        }
       });
-      stream?.getTracks().forEach(track => track.stop());
-      socketRef.current?.disconnect();
     };
-  }, [meetingDetails, userName, toast, setupAudioLevelDetection]);
+  }, [meetingDetails, roomId, userName, toast]);
 
   // Screen Sharing Implementation
   const toggleScreenShare = async () => {
