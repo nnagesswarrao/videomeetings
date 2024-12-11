@@ -1,15 +1,17 @@
 const express = require('express');
 const router = express.Router();
+const MeetingController = require('../controllers/meetingController');
 
-// Meeting routes
-router.post('/create', (req, res) => {
-    // TODO: Implement meeting creation logic
-    res.status(200).json({ message: 'Meeting created successfully' });
-});
+// Meeting creation route
+router.post('/create', MeetingController.createMeeting);
 
-router.get('/:meetingId', (req, res) => {
-    // TODO: Implement meeting details retrieval
-    res.status(200).json({ meetingId: req.params.meetingId });
-});
+// Get meeting details
+router.get('/:meetingId', MeetingController.getMeetingById);
+
+// List all meetings
+router.get('/', MeetingController.listMeetings);
+
+// Update meeting status
+router.patch('/:meetingId/status', MeetingController.updateMeetingStatus);
 
 module.exports = router;

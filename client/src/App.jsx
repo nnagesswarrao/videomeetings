@@ -25,6 +25,7 @@ import Signup from './components/Auth/Signup.jsx';
 import MeetingsPage from './pages/MeetingsPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import MeetingRoom from './components/MeetingRoom.jsx';
 
 // Additional Components
 import Chat from './components/Chat/Chat.jsx';
@@ -124,85 +125,93 @@ function App() {
                   {/* Protected Routes */}
                   <Route 
                     path="/" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <HomePage />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/dashboard" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <HomePage />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/chat" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <Chat />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/calendar" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <Calendar />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/calls" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <Calls />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/create-meeting" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <CreateMeeting />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/join-meeting" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <JoinMeeting />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   <Route 
                     path="/meetings" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <MeetingsPage />
                       </ProtectedRoute>
-                    } 
+                    )} 
+                  />
+                  <Route 
+                    path="/meeting/:roomId" 
+                    element={(
+                      <ProtectedRoute>
+                        <MeetingRoom />
+                      </ProtectedRoute>
+                    )} 
                   />
                   <Route 
                     path="/profile" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <ProfilePage />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                   
                   {/* 404 Route */}
                   <Route 
                     path="*" 
-                    element={
+                    element={(
                       <ProtectedRoute>
                         <NotFoundPage />
                       </ProtectedRoute>
-                    } 
+                    )} 
                   />
                 </Routes>
               </Box>

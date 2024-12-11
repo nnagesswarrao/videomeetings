@@ -10,8 +10,7 @@ var bodyParser = require('body-parser');
 // Load environment variables
 dotenv.config();
 
-// Import database initialization
-// const initializeDatabase = require('./src/utils/initDb');
+// Import database configuration
 
 // Import routes
 const authRoutes = require('./src/routes/authRoutes');
@@ -72,29 +71,132 @@ app.use((req, res, next) => {
     next();
 });
 
-// Socket.IO Connection Handler
-io.on('connection', (socket) => {
-    console.log('New client connected');
+// Socket.IO Connection Handler with Enhanced WebRTC Support
+const rooms = new Map();
 
-    // Meeting-related events
-    socket.on('join-meeting', (meetingId) => {
-        socket.join(meetingId);
-        console.log(`User joined meeting: ${meetingId}`);
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+
+    // Room and User Management
+    socket.on('join-room', (data) => {
+        const { roomId, userName, meetingId } = data;
+        console.log(`Detailed Join Room Event: 
+            Room ID: ${roomId}, 
+            User Name: ${userName}, 
+            Socket ID: ${socket.id}`);
+
+        // Add user to the room
+        if (!rooms.has(roomId)) {
+            rooms.set(roomId, new Map());
+        }
+
+        const room = rooms.get(roomId);
+        
+        // Store user information
+        const userInfo = {
+            socketId: socket.id,
+            userName: userName,
+            meetingId: meetingId
+        };
+
+        room.set(socket.id, userInfo);
+        socket.join(roomId);
+
+        // Get all existing users in the room
+        const users = Array.from(room.values())
+            .filter(user => user.socketId !== socket.id)
+            .map(user => ({
+                socketId: user.socketId,
+                userName: user.userName
+            }));
+
+        console.log(`Room ${roomId} users:`, users);
+
+        // Send all existing users to the newly joined user
+        socket.emit('all-users', users);
+
+        // Notify other users about the new user
+        socket.to(roomId).emit('user-joined', {
+            socketId: socket.id,
+            userName: userName
+        });
+
+        console.log(`User ${userName} joined room ${roomId}. Total users: ${room.size}`);
+    });
+
+    // WebRTC Signaling
+    socket.on('sending-signal', (data) => {
+        const { userToSignal, callerId, signal, userName } = data;
+        console.log(`Sending signal from ${callerId} to ${userToSignal}`);
+        
+        io.to(userToSignal).emit('user-joined', {
+            signal,
+            callerId,
+            userName
+        });
+    });
+
+    socket.on('returning-signal', (data) => {
+        const { signal, callerId, userName } = data;
+        console.log(`Returning signal from ${socket.id} to ${callerId}`);
+        
+        io.to(callerId).emit('receiving-returned-signal', {
+            signal,
+            id: socket.id
+        });
+    });
+
+    // Handle user disconnection
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+        
+        // Find and remove user from all rooms
+        for (const [roomId, room] of rooms.entries()) {
+            if (room.has(socket.id)) {
+                const userInfo = room.get(socket.id);
+                room.delete(socket.id);
+
+                // Notify other users in the room
+                socket.to(roomId).emit('user-left', socket.id);
+                console.log(`User ${userInfo.userName} left room ${roomId}`);
+
+                // Clean up empty rooms
+                if (room.size === 0) {
+                    rooms.delete(roomId);
+                    console.log(`Room ${roomId} deleted - no users remaining`);
+                }
+                break;
+            }
+        }
+    });
+
+    // Media stream events
+    socket.on('stream-changed', (data) => {
+        const { roomId, streamType } = data;
+        socket.to(roomId).emit('peer-stream-changed', {
+            peerId: socket.id,
+            streamType
+        });
     });
 
     // Chat events
-    socket.on('send-message', (message) => {
-        // Broadcast message to meeting room
-        io.to(message.meetingId).emit('receive-message', message);
+    socket.on('chat-message', (data) => {
+        const { roomId, message } = data;
+        io.to(roomId).emit('receive-chat-message', message);
     });
 
     // Participant control events
     socket.on('mute-participant', (data) => {
-        io.to(data.meetingId).emit('participant-muted', data);
+        const { roomId, participantId } = data;
+        io.to(roomId).emit('participant-muted', {
+            participantId,
+            mutedBy: socket.id
+        });
     });
 
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
+    socket.on('raise-hand', (data) => {
+        const { roomId, userName } = data;
+        socket.to(roomId).emit('hand-raised', { userName });
     });
 });
 
@@ -125,14 +227,20 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Database and Server Initialization
-function startServer() {
-    const PORT = process.env.PORT || 5001;
-    const HOST = process.env.HOST || 'localhost';
-    
-    server.listen(PORT, HOST, () => {
-        console.log(`Server running at http://${HOST}:${PORT}`);
-        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
+async function startServer() {
+    try {
+        // Test database connection
+        
+
+        // Start the server
+        const PORT = process.env.PORT || 5001;
+        server.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
 }
 
 // Database Initialization and Server Start

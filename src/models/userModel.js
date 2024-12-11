@@ -27,17 +27,15 @@ class UserModel {
         // Insert user
         const sql = `
             INSERT INTO users 
-            (name, email, password, first_name, last_name, job_title, department) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            (
+            name, email, password
+            ) 
+            VALUES (?, ?, ?)
         `;
         const result = await query(sql, [
             name, 
             email, 
-            hashedPassword, 
-            first_name, 
-            last_name, 
-            job_title, 
-            department
+            hashedPassword
         ]);
 
         return result.insertId;
@@ -76,6 +74,7 @@ class UserModel {
     static async findByEmail(email) {
         const sql = 'SELECT * FROM users WHERE email = ?';
         const results = await query(sql, [email]);
+        console.log(results,"=====")
         return results[0];
     }
 

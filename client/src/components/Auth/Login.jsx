@@ -76,7 +76,7 @@ const Login = () => {
           <button type="submit" className="auth-button">Login</button>
         </form>
         <p className="auth-link">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          Don't have an account? <Link to="/register">Sign up</Link>
         </p>
       </div>
     </div>
