@@ -6,23 +6,9 @@ class MeetingController {
     static async createMeeting(req, res) {
         console.log(req.body, "=====");
         try {
-            const {
-                title,
-                description,
-                meeting_type,
-                start_time,
-                end_time,
-                recurrence_pattern,
-                time_zone,
-                max_participants,
-                recording_enabled,
-                transcription_enabled,
-                chat_enabled,
-                password
-            } = req.body;
-
+            const reqBody = req.body;
             // Validate required fields
-            if (!title) {
+            if (!reqBody.title) {
                 return res.status(400).json({
                     error: 'Meeting name is required'
                 });
@@ -30,23 +16,10 @@ class MeetingController {
 
             // TODO: Get authenticated user's ID
             const host_id = req.user ? req.user.id : 1; // Default to 1 for testing
-
+            reqBody.host_id = host_id;
+            reqBody.meeting_link = req.headers.origin + '/join/' + uuidv4();
             // Create meeting
-            const newMeeting = await Meeting.create({
-                host_id,
-                title,
-                description,
-                meeting_type,
-                start_time,
-                end_time,
-                recurrence_pattern,
-                time_zone,
-                max_participants,
-                recording_enabled,
-                transcription_enabled,
-                chat_enabled,
-                password
-            });
+            const newMeeting = await Meeting.create(reqBody);
 
             res.status(201).json({
                 message: 'Meeting created successfully',

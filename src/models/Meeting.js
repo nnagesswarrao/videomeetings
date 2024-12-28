@@ -1,71 +1,41 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../utils/db');
 
+const onToConvertdateToTimeFormat = (date_time) => {
+    const endTime = new Date(date_time);
+    // Convert to MySQL DATETIME format (local time)
+    const mysqlDateTime = endTime.toISOString().slice(0, 19).replace('T', ' ');
+    console.log(mysqlDateTime, "=====")
+    return mysqlDateTime;
+}
+
+
 class Meeting {
     // Create a new meeting
-    static async create(meetingData) {
-        const { 
-            host_id,
-            team_id = null,
-            channel_id = null,
-            title,
-            description = '',
-            meeting_type = 'instant',
-            start_time = new Date(),
-            end_time = null,
-            recurrence_pattern = null,
-            time_zone = 'UTC',
-            status = 'scheduled',
-            password = null,
-            max_participants = 100,
-            recording_enabled = false,
-            transcription_enabled = false,
-            chat_enabled = true
-        } = meetingData;
-
-        // Generate unique meeting_id
-        const meeting_id = uuidv4();
-
-        const sql = `
-            INSERT INTO meetings (
-                meeting_id, host_id, team_id, channel_id, title, 
-                description, meeting_type, start_time, end_time, 
-                recurrence_pattern, time_zone, status, password, 
-                max_participants, recording_enabled, 
-                transcription_enabled, chat_enabled
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-
-
-
-        const params = [
-            meeting_id, 
-            host_id, 
-            team_id, 
-            channel_id, 
-            title,
-            description, 
-            meeting_type, 
-            start_time, 
-            end_time, 
-            recurrence_pattern, 
-            time_zone, 
-            status, 
-            password, 
-            max_participants, 
-            recording_enabled, 
-            transcription_enabled, 
-            chat_enabled
-        ];
-        console.log(params, "===vcxvxv=")
+    static async create(data) {
+        const sql = `INSERT INTO meetings(title,room_id,description,
+                   agenda,meeting_link,host_id,meeting_type,password,
+                   max_participants,start_time,end_time,is_recording_enabled,is_chat_enabled,
+                   is_screen_share_enabled,status,created_at)VALUES (
+                   '${data?.title || null}', '${uuidv4()}',
+                    '${data?.description}',
+                   ${data?.agenda || null},'${data?.meeting_link || null}',
+                   ${data?.host_id || null},
+                   ${data.is_online_meeting ? 1 : 0},
+                   ${data?.password || null},${data?.max_participants || null},
+                   '${onToConvertdateToTimeFormat(data?.start_time)}',
+                   '${onToConvertdateToTimeFormat(data?.end_time)}',
+                   ${data.record_meeting ? 1 : 0},${data?.is_chat_enabled ? 1 : 0},
+                   ${data?.is_screen_share_enabled ? 1 : 0},
+                   'scheduled', CURRENT_TIMESTAMP())`;
         try {
-            const result = await db.query(sql, params);
+            const result = await db.query(sql);
+console.log(result, "=====")
             return {
                 id: result.insertId,
-                meeting_id,
-                title,
-                start_time,
-                status
+                title: data?.title,
+                start_time: data?.start_time,
+                status: data?.status
             };
         } catch (error) {
             console.error('Failed to create meeting:', error);
