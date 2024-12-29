@@ -30,7 +30,7 @@ class Meeting {
                    'scheduled', CURRENT_TIMESTAMP())`;
         try {
             const result = await db.query(sql);
-console.log(result, "=====")
+            console.log(result, "=====")
             return {
                 id: result.insertId,
                 title: data?.title,
@@ -39,6 +39,23 @@ console.log(result, "=====")
             };
         } catch (error) {
             console.error('Failed to create meeting:', error);
+            throw error;
+        }
+    }
+
+    //getAllMeeting
+
+
+    static async getAllMeeting() {
+        // console.log(meetingId, "=====")
+        const sql = ` SELECT * FROM meetings`;
+        try {
+            const meeting = await db.query(sql);
+            // console.log(meeting, "=====")
+            return meeting;
+
+        } catch (error) {
+            console.error('Failed to find meeting:', error);
             throw error;
         }
     }

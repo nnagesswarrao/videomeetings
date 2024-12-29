@@ -3,6 +3,22 @@ const { v4: uuidv4 } = require('uuid');
 
 class MeetingController {
     // Create a new meeting
+    static async getAllMeeting(req, res) {
+        try {
+            const allMeetings = await Meeting.getAllMeeting();
+            console.log(allMeetings,"===========Tesing=========")
+            res.json(allMeetings);
+        } catch (error) {
+            console.error('Meeting creation error:', error);
+            res.status(500).json({
+                error: 'Failed to create meeting',
+                details: error.message
+            });
+        }
+    }
+
+
+    // Create a new meeting
     static async createMeeting(req, res) {
         console.log(req.body, "=====");
         try {

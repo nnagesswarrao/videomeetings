@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const MeetingController = require('../controllers/meetingController');
 
+router.get('/all', MeetingController.getAllMeeting);
+
 // Meeting creation route
 router.post('/create', MeetingController.createMeeting);
 

@@ -1,64 +1,242 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import {
+    Box,
+    Grid,
+    Stat,
+    StatLabel,
+    StatNumber,
+    StatGroup,
+    Heading,
+    Button,
+    Table,
+    Thead,
+    Tbody,
+    Tr,
+    Th,
+    Td,
+    Badge,
+    HStack,
+    VStack,
+    useToast,
+    Tabs,
+    TabList,
+    TabPanels,
+    Tab,
+    TabPanel,
+    Card,
+    CardBody,
+    Icon,
+} from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
+import { MdAdd, MdVideoCall, MdEvent, MdUpcoming, MdCheck } from 'react-icons/md';
 
 const Dashboard = () => {
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex flex-col space-y-4">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome to Video Meeting</h1>
+    const navigate = useNavigate();
+    const toast = useToast();
+    const [meetings, setMeetings] = useState([]);
+    const [stats, setStats] = useState({
+        todayMeetings: 0,
+        upcomingMeetings: 0,
+        completedMeetings: 0
+    });
+
+    useEffect(() => {
+        fetchMeetings();
+    }, []);
+
+    const fetchMeetings = async () => {
+        try {
+            const response = await fetch('http://localhost:5001/api/meetings/all');
+            const data = await response.json();
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Link
-                to="/create-meeting"
-                className="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-50"
-              >
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900">
-                  Create Meeting
-                </h5>
-                <p className="font-normal text-gray-700">
-                  Schedule a new meeting and invite participants
-                </p>
-              </Link>
+            // Process meetings data
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            const processedMeetings = data.map(meeting => ({
+                ...meeting,
+                start_time: new Date(meeting.start_time),
+                end_time: new Date(meeting.end_time)
+            }));
 
-              <Link
-                to="/join-meeting"
-                className="block p-6 bg-white rounded-lg border border-gray-200 shadow-md hover:bg-gray-50"
-              >
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900">
-                  Join Meeting
-                </h5>
-                <p className="font-normal text-gray-700">
-                  Join an existing meeting with a meeting code
-                </p>
-              </Link>
-            </div>
+            // Calculate stats
+            const todayMeetings = processedMeetings.filter(meeting => 
+                meeting.start_time >= today && 
+                meeting.start_time < new Date(today.getTime() + 24 * 60 * 60 * 1000)
+            ).length;
 
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Upcoming Meetings</h2>
-              <div className="bg-white shadow overflow-hidden sm:rounded-md">
-                <ul className="divide-y divide-gray-200">
-                  {/* This will be populated with actual meeting data */}
-                  <li className="px-6 py-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-indigo-600">Daily Standup</p>
-                        <p className="text-sm text-gray-500">Today at 10:00 AM</p>
-                      </div>
-                      <button className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm">
-                        Join
-                      </button>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+            const upcomingMeetings = processedMeetings.filter(meeting => 
+                meeting.start_time > now
+            ).length;
+
+            const completedMeetings = processedMeetings.filter(meeting => 
+                meeting.end_time < now
+            ).length;
+
+            setStats({
+                todayMeetings,
+                upcomingMeetings,
+                completedMeetings
+            });
+
+            setMeetings(processedMeetings);
+        } catch (error) {
+            toast({
+                title: 'Error fetching meetings',
+                status: 'error',
+                duration: 3000
+            });
+        }
+    };
+
+    const handleJoinMeeting = (meetingId) => {
+        navigate(`/meeting-room/${meetingId}`);
+    };
+
+    const renderMeetingGrid = (meetings, type) => {
+        const now = new Date();
+        const filteredMeetings = type === 'upcoming' 
+            ? meetings.filter(meeting => meeting.start_time > now)
+            : meetings.filter(meeting => meeting.end_time < now);
+
+        return (
+            <Box overflowX="auto">
+                <Table variant="simple">
+                    <Thead>
+                        <Tr>
+                            <Th>Title</Th>
+                            <Th>Date & Time</Th>
+                            <Th>Duration</Th>
+                            <Th>Attendees</Th>
+                            <Th>Status</Th>
+                            <Th>Action</Th>
+                        </Tr>
+                    </Thead>
+                    <Tbody>
+                        {filteredMeetings.map(meeting => (
+                            <Tr key={meeting.id}>
+                                <Td fontWeight="medium">{meeting.title}</Td>
+                                <Td>
+                                    {meeting.start_time.toLocaleDateString()} <br />
+                                    {meeting.start_time.toLocaleTimeString()}
+                                </Td>
+                                <Td>{meeting.duration} mins</Td>
+                                <Td>{meeting.required_attendees?.length || 0} required<br />
+                                    {meeting.optional_attendees?.length || 0} optional</Td>
+                                <Td>
+                                    <Badge 
+                                        colorScheme={
+                                            meeting.start_time > now 
+                                                ? 'blue' 
+                                                : meeting.end_time < now 
+                                                    ? 'gray' 
+                                                    : 'green'
+                                        }
+                                    >
+                                        {meeting.start_time > now 
+                                            ? 'Upcoming' 
+                                            : meeting.end_time < now 
+                                                ? 'Completed' 
+                                                : 'In Progress'}
+                                    </Badge>
+                                </Td>
+                                <Td>
+                                    {type === 'upcoming' && (
+                                        <Button
+                                            leftIcon={<MdVideoCall />}
+                                            colorScheme="blue"
+                                            size="sm"
+                                            onClick={() => handleJoinMeeting(meeting.id)}
+                                        >
+                                            Join
+                                        </Button>
+                                    )}
+                                </Td>
+                            </Tr>
+                        ))}
+                    </Tbody>
+                </Table>
+            </Box>
+        );
+    };
+
+    return (
+        <Box p={6}>
+            {/* Stats Cards */}
+            <Grid templateColumns={{ base: "repeat(1, 1fr)", md: "repeat(3, 1fr)" }} gap={6} mb={8}>
+                <Card>
+                    <CardBody>
+                        <Stat>
+                            <HStack spacing={4}>
+                                <Icon as={MdEvent} boxSize={8} color="blue.500" />
+                                <Box>
+                                    <StatLabel fontSize="lg">Today's Meetings</StatLabel>
+                                    <StatNumber>{stats.todayMeetings}</StatNumber>
+                                </Box>
+                            </HStack>
+                        </Stat>
+                    </CardBody>
+                </Card>
+
+                <Card>
+                    <CardBody>
+                        <Stat>
+                            <HStack spacing={4}>
+                                <Icon as={MdUpcoming} boxSize={8} color="green.500" />
+                                <Box>
+                                    <StatLabel fontSize="lg">Upcoming Meetings</StatLabel>
+                                    <StatNumber>{stats.upcomingMeetings}</StatNumber>
+                                </Box>
+                            </HStack>
+                        </Stat>
+                    </CardBody>
+                </Card>
+
+                <Card>
+                    <CardBody>
+                        <Stat>
+                            <HStack spacing={4}>
+                                <Icon as={MdCheck} boxSize={8} color="gray.500" />
+                                <Box>
+                                    <StatLabel fontSize="lg">Completed Meetings</StatLabel>
+                                    <StatNumber>{stats.completedMeetings}</StatNumber>
+                                </Box>
+                            </HStack>
+                        </Stat>
+                    </CardBody>
+                </Card>
+            </Grid>
+
+            {/* Add Meeting Button */}
+            <HStack justify="space-between" mb={6}>
+                <Heading size="lg">Meetings</Heading>
+                <Button
+                    leftIcon={<MdAdd />}
+                    colorScheme="blue"
+                    onClick={() => navigate('/create-meeting')}
+                >
+                    Add Meeting
+                </Button>
+            </HStack>
+
+            {/* Meeting Grids */}
+            <Tabs>
+                <TabList>
+                    <Tab>Upcoming Meetings</Tab>
+                    <Tab>Completed Meetings</Tab>
+                </TabList>
+
+                <TabPanels>
+                    <TabPanel p={0} pt={4}>
+                        {renderMeetingGrid(meetings, 'upcoming')}
+                    </TabPanel>
+                    <TabPanel p={0} pt={4}>
+                        {renderMeetingGrid(meetings, 'completed')}
+                    </TabPanel>
+                </TabPanels>
+            </Tabs>
+        </Box>
+    );
 };
 
 export default Dashboard;
