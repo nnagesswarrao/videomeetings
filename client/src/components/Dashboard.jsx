@@ -45,6 +45,25 @@ import CreateMeeting from './CreateMeeting';
 import { formatDateTime, parseDateTime } from '../utils/dateUtils';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
+import startOfWeek from 'date-fns/startOfWeek';
+import getDay from 'date-fns/getDay';
+import ViewMeeting from './ViewMeeting';
+
+const locales = {
+    'en-US': require('date-fns/locale/en-US')
+};
+
+const localizer = dateFnsLocalizer({
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    locales
+});
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -61,6 +80,12 @@ const Dashboard = () => {
         endDate: null
     });
     const [filterType, setFilterType] = useState('all'); // 'all', 'today', 'week', 'month', 'custom'
+    const [selectedMeeting, setSelectedMeeting] = useState(null);
+    const { 
+        isOpen: isViewOpen, 
+        onOpen: onViewOpen, 
+        onClose: onViewClose 
+    } = useDisclosure();
 
     useEffect(() => {
         fetchMeetings();
@@ -150,8 +175,8 @@ const Dashboard = () => {
     };
 
     const handleViewMeeting = (meeting) => {
-        // You can either navigate to a new page or open a drawer
-        navigate(`/meeting/view/${meeting.id}`);
+        setSelectedMeeting(meeting);
+        onViewOpen();
     };
 
     const handleAddParticipants = (meeting) => {
@@ -477,19 +502,100 @@ const Dashboard = () => {
                 </DrawerContent>
             </Drawer>
 
-            {/* Meeting Grids */}
+            {/* View Meeting Drawer */}
+            <Drawer
+                isOpen={isViewOpen}
+                placement="right"
+                onClose={onViewClose}
+                size="md"
+            >
+                <DrawerOverlay />
+                <DrawerContent>
+                    <DrawerCloseButton />
+                    <DrawerHeader borderBottomWidth="1px">
+                        Meeting Details
+                    </DrawerHeader>
+
+                    <DrawerBody p={0}>
+                        {selectedMeeting && (
+                            <ViewMeeting 
+                                meeting={selectedMeeting}
+                                onClose={onViewClose}
+                            />
+                        )}
+                    </DrawerBody>
+                </DrawerContent>
+            </Drawer>
+
+            {/* Update the Tabs section */}
             <Tabs>
                 <TabList>
-                    <Tab>Upcoming Meetings</Tab>
-                    <Tab>Completed Meetings</Tab>
+                    <Tab>Calendar View</Tab>
+                    <Tab>Grid View</Tab>
                 </TabList>
 
                 <TabPanels>
+                    {/* Calendar View */}
                     <TabPanel p={0} pt={4}>
-                        {renderMeetingGrid(meetings, 'upcoming')}
+                        <Box height="600px">
+                            <Calendar
+                                localizer={localizer}
+                                events={meetings.map(meeting => ({
+                                    title: meeting.title,
+                                    start: new Date(meeting.start_time),
+                                    end: new Date(meeting.end_time),
+                                    resource: meeting
+                                }))}
+                                startAccessor="start"
+                                endAccessor="end"
+                                style={{ height: '100%' }}
+                                onSelectEvent={(event) => {
+                                    const meeting = event.resource;
+                                    if (new Date(meeting.start_time) > new Date()) {
+                                        handleJoinMeeting(meeting.id);
+                                    } else {
+                                        handleViewMeeting(meeting);
+                                    }
+                                }}
+                                eventPropGetter={(event) => {
+                                    const meeting = event.resource;
+                                    const now = new Date();
+                                    let backgroundColor = '#3182CE'; // blue.500
+                                    
+                                    if (new Date(meeting.end_time) < now) {
+                                        backgroundColor = '#718096'; // gray.500
+                                    } else if (new Date(meeting.start_time) <= now && new Date(meeting.end_time) >= now) {
+                                        backgroundColor = '#38A169'; // green.500
+                                    }
+                                    
+                                    return {
+                                        style: {
+                                            backgroundColor,
+                                            borderRadius: '4px'
+                                        }
+                                    };
+                                }}
+                            />
+                        </Box>
                     </TabPanel>
+
+                    {/* Grid View */}
                     <TabPanel p={0} pt={4}>
-                        {renderMeetingGrid(meetings, 'completed')}
+                        <Tabs>
+                            <TabList>
+                                <Tab>Upcoming Meetings</Tab>
+                                <Tab>Completed Meetings</Tab>
+                            </TabList>
+
+                            <TabPanels>
+                                <TabPanel p={0} pt={4}>
+                                    {renderMeetingGrid(meetings, 'upcoming')}
+                                </TabPanel>
+                                <TabPanel p={0} pt={4}>
+                                    {renderMeetingGrid(meetings, 'completed')}
+                                </TabPanel>
+                            </TabPanels>
+                        </Tabs>
                     </TabPanel>
                 </TabPanels>
             </Tabs>
