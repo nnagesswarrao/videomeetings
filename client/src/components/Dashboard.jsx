@@ -45,25 +45,10 @@ import CreateMeeting from './CreateMeeting';
 import { formatDateTime, parseDateTime } from '../utils/dateUtils';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import "react-big-calendar/lib/css/react-big-calendar.css";
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
-import startOfWeek from 'date-fns/startOfWeek';
-import getDay from 'date-fns/getDay';
+import Calendar from './Calendar/Calendar';
 import ViewMeeting from './ViewMeeting';
-
-const locales = {
-    'en-US': require('date-fns/locale/en-US')
-};
-
-const localizer = dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek,
-    getDay,
-    locales
-});
+import Calls from './Calls/Calls';
+import JoinMeeting from './JoinMeeting';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -419,6 +404,15 @@ const Dashboard = () => {
         });
     };
 
+    const handleCalendarEventSelect = (event) => {
+        const meeting = event.resource;
+        if (new Date(meeting.start_time) > new Date()) {
+            handleJoinMeeting(meeting.id);
+        } else {
+            handleViewMeeting(meeting);
+        }
+    };
+
     return (
         <Box p={6}>
             {/* Stats Cards */}
@@ -538,43 +532,9 @@ const Dashboard = () => {
                     {/* Calendar View */}
                     <TabPanel p={0} pt={4}>
                         <Box height="600px">
-                            <Calendar
-                                localizer={localizer}
-                                events={meetings.map(meeting => ({
-                                    title: meeting.title,
-                                    start: new Date(meeting.start_time),
-                                    end: new Date(meeting.end_time),
-                                    resource: meeting
-                                }))}
-                                startAccessor="start"
-                                endAccessor="end"
-                                style={{ height: '100%' }}
-                                onSelectEvent={(event) => {
-                                    const meeting = event.resource;
-                                    if (new Date(meeting.start_time) > new Date()) {
-                                        handleJoinMeeting(meeting.id);
-                                    } else {
-                                        handleViewMeeting(meeting);
-                                    }
-                                }}
-                                eventPropGetter={(event) => {
-                                    const meeting = event.resource;
-                                    const now = new Date();
-                                    let backgroundColor = '#3182CE'; // blue.500
-                                    
-                                    if (new Date(meeting.end_time) < now) {
-                                        backgroundColor = '#718096'; // gray.500
-                                    } else if (new Date(meeting.start_time) <= now && new Date(meeting.end_time) >= now) {
-                                        backgroundColor = '#38A169'; // green.500
-                                    }
-                                    
-                                    return {
-                                        style: {
-                                            backgroundColor,
-                                            borderRadius: '4px'
-                                        }
-                                    };
-                                }}
+                            <Calendar 
+                                meetings={meetings}
+                                onSelectEvent={handleCalendarEventSelect}
                             />
                         </Box>
                     </TabPanel>
@@ -585,14 +545,29 @@ const Dashboard = () => {
                             <TabList>
                                 <Tab>Upcoming Meetings</Tab>
                                 <Tab>Completed Meetings</Tab>
+                                <Tab>Calls</Tab>
+                                <Tab>Join Meeting</Tab>
                             </TabList>
 
                             <TabPanels>
+                                {/* Upcoming Meetings Tab */}
                                 <TabPanel p={0} pt={4}>
                                     {renderMeetingGrid(meetings, 'upcoming')}
                                 </TabPanel>
+
+                                {/* Completed Meetings Tab */}
                                 <TabPanel p={0} pt={4}>
                                     {renderMeetingGrid(meetings, 'completed')}
+                                </TabPanel>
+
+                                {/* Calls Tab */}
+                                <TabPanel p={0} pt={4}>
+                                    <Calls />
+                                </TabPanel>
+
+                                {/* Join Meeting Tab */}
+                                <TabPanel p={0} pt={4}>
+                                    <JoinMeeting />
                                 </TabPanel>
                             </TabPanels>
                         </Tabs>

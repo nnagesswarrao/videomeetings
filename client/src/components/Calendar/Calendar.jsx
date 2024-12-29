@@ -1,111 +1,61 @@
-import React, { useState } from 'react';
-import './Calendar.css';
+import React from 'react';
+import { Calendar as BigCalendar, dateFnsLocalizer } from 'react-big-calendar';
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import format from 'date-fns/format';
+import parse from 'date-fns/parse';
+import startOfWeek from 'date-fns/startOfWeek';
+import getDay from 'date-fns/getDay';
 
-const Calendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('work-week');
+const locales = {
+    'en-US': require('date-fns/locale/en-US')
+};
 
-  // Generate week days
-  const generateWeekDays = () => {
-    const days = [];
-    const startDate = new Date(currentDate);
-    startDate.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Start from Monday
+const localizer = dateFnsLocalizer({
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    locales
+});
 
-    for (let i = 0; i < 5; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      days.push({
-        date: date.getDate(),
-        day: new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date),
-      });
-    }
-    return days;
-  };
+const Calendar = ({ meetings, onSelectEvent }) => {
+    const events = meetings.map(meeting => ({
+        title: meeting.title,
+        start: new Date(meeting.start_time),
+        end: new Date(meeting.end_time),
+        resource: meeting
+    }));
 
-  // Generate time slots
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let i = 7; i <= 23; i++) {
-      slots.push(`${i}:00`);
-    }
-    return slots;
-  };
-
-  const handlePrevWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() - 7);
-    setCurrentDate(newDate);
-  };
-
-  const handleNextWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + 7);
-    setCurrentDate(newDate);
-  };
-
-  return (
-    <div className="calendar-container">
-      <div className="calendar-header">
-        <div className="calendar-title">
-          <h2>Calendar</h2>
-        </div>
-        <div className="calendar-actions">
-          <button className="join-id-btn">Join with an ID</button>
-          <button className="meet-now-btn">Meet now</button>
-          <button className="new-meeting-btn">+ New meeting</button>
-        </div>
-      </div>
-
-      <div className="calendar-toolbar">
-        <div className="calendar-navigation">
-          <button onClick={() => setCurrentDate(new Date())}>Today</button>
-          <button onClick={handlePrevWeek}>&lt;</button>
-          <button onClick={handleNextWeek}>&gt;</button>
-          <span className="current-month">
-            {new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(currentDate)}
-          </span>
-        </div>
-        <div className="view-options">
-          <select value={view} onChange={(e) => setView(e.target.value)}>
-            <option value="work-week">Work week</option>
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="calendar-grid">
-        <div className="time-column">
-          {generateTimeSlots().map((time) => (
-            <div key={time} className="time-slot">
-              {time}
-            </div>
-          ))}
-        </div>
+    const eventPropGetter = (event) => {
+        const meeting = event.resource;
+        const now = new Date();
+        let backgroundColor = '#3182CE'; // blue.500 for upcoming
         
-        <div className="days-grid">
-          <div className="days-header">
-            {generateWeekDays().map((day) => (
-              <div key={day.date} className="day-column-header">
-                <div className="day-name">{day.day}</div>
-                <div className="day-date">{day.date}</div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="time-slots-grid">
-            {generateWeekDays().map((day) => (
-              <div key={day.date} className="day-column">
-                {generateTimeSlots().map((time) => (
-                  <div key={`${day.date}-${time}`} className="grid-cell"></div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+        if (new Date(meeting.end_time) < now) {
+            backgroundColor = '#718096'; // gray.500 for completed
+        } else if (new Date(meeting.start_time) <= now && new Date(meeting.end_time) >= now) {
+            backgroundColor = '#38A169'; // green.500 for in progress
+        }
+        
+        return {
+            style: {
+                backgroundColor,
+                borderRadius: '4px'
+            }
+        };
+    };
+
+    return (
+        <BigCalendar
+            localizer={localizer}
+            events={events}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            onSelectEvent={onSelectEvent}
+            eventPropGetter={eventPropGetter}
+        />
+    );
 };
 
 export default Calendar;
