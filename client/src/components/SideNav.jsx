@@ -11,9 +11,9 @@ const SideNav = () => {
 
   const menuItems = [
     { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/chat', icon: '💬', label: 'Chat' },
-    { path: '/calendar', icon: '📅', label: 'Calendar' },
-    { path: '/calls', icon: '📞', label: 'Calls' },
+    // { path: '/chat', icon: '💬', label: 'Chat' },
+    // { path: '/calendar', icon: '📅', label: 'Calendar' },
+    // { path: '/calls', icon: '📞', label: 'Calls' },
     // { path: '/create-meeting', icon: '➕', label: 'Create Meeting' },
     { path: '/join-meeting', icon: '➡️', label: 'Join Meeting' },
     { path: '/profile', icon: '👤', label: 'Profile' },

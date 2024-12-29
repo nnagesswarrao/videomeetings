@@ -49,6 +49,7 @@ import Calendar from './Calendar/Calendar';
 import ViewMeeting from './ViewMeeting';
 import Calls from './Calls/Calls';
 import JoinMeeting from './JoinMeeting';
+import AddParticipantsDialog from './AddParticipantsDialog';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -71,6 +72,8 @@ const Dashboard = () => {
         onOpen: onViewOpen, 
         onClose: onViewClose 
     } = useDisclosure();
+    const [isAddParticipantsOpen, setIsAddParticipantsOpen] = useState(false);
+    const [selectedMeetingForParticipants, setSelectedMeetingForParticipants] = useState(null);
 
     useEffect(() => {
         fetchMeetings();
@@ -165,7 +168,12 @@ const Dashboard = () => {
     };
 
     const handleAddParticipants = (meeting) => {
-        navigate(`/meeting/participants/${meeting.id}`);
+        setSelectedMeetingForParticipants(meeting);
+        setIsAddParticipantsOpen(true);
+    };
+
+    const handleParticipantsAdded = () => {
+        fetchMeetings(); // Refresh the meetings list
     };
 
     const getFilteredMeetings = (meetings, type, filterType, dateFilter) => {
@@ -406,11 +414,11 @@ const Dashboard = () => {
 
     const handleCalendarEventSelect = (event) => {
         const meeting = event.resource;
-        if (new Date(meeting.start_time) > new Date()) {
-            handleJoinMeeting(meeting.id);
-        } else {
+        // if (new Date(meeting.start_time) > new Date()) {
+        //     handleJoinMeeting(meeting.id);
+        // } else {
             handleViewMeeting(meeting);
-        }
+        // }
     };
 
     return (
@@ -520,6 +528,17 @@ const Dashboard = () => {
                     </DrawerBody>
                 </DrawerContent>
             </Drawer>
+
+            {/* Add Participants Dialog */}
+            <AddParticipantsDialog
+                isOpen={isAddParticipantsOpen}
+                onClose={() => {
+                    setIsAddParticipantsOpen(false);
+                    setSelectedMeetingForParticipants(null);
+                }}
+                meetingId={selectedMeetingForParticipants?.id}
+                onParticipantsAdded={handleParticipantsAdded}
+            />
 
             {/* Update the Tabs section */}
             <Tabs>
