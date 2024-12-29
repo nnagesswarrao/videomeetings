@@ -95,7 +95,7 @@ const CreateMeeting = () => {
                     duration: 5000,
                     isClosable: true,
                 });
-                navigate(`/meeting/${data.meeting.id}`);
+                // navigate(`/meeting/${data.meeting.id}`);
             } else {
                 toast({
                     title: "Error",

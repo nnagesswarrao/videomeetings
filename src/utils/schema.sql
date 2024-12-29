@@ -359,3 +359,21 @@ CREATE TABLE IF NOT EXISTS lobby_participants (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (admitted_by_user_id) REFERENCES users(id)
 );
+
+CREATE TABLE prtcpnts_lst_t (
+    id SERIAL PRIMARY KEY, -- Auto-incrementing ID column
+    hostId INT NOT NULL, -- Foreign key to reference the host
+    username VARCHAR(255) NOT NULL, -- User's name
+    phone_number VARCHAR(15), -- Optional phone number
+    email VARCHAR(255) NOT NULL, -- User's email address
+    date_of_birth DATE, -- User's date of birth
+    group_id INT, -- Foreign key for the group ID
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp for creation
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP -- Timestamp for updates
+);
+
+
+CREATE TABLE user_groups (
+    group_id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+    group_name VARCHAR(255) NOT NULL -- Name of the group
+);

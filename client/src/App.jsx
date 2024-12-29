@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ChakraProvider, 
+import {
+  ChakraProvider,
   extendTheme,
   ColorModeScript,
-  Box 
+  Box
 } from '@chakra-ui/react';
-import { 
-  BrowserRouter as Router, 
-  Routes, 
-  Route, 
-  Navigate, 
-  useNavigate 
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate
 } from 'react-router-dom';
 
 // Import components with full path to ensure correct import
@@ -33,7 +33,7 @@ import Calls from './components/Calls/Calls.jsx';
 import Calendar from './components/Calendar/Calendar.jsx';
 import CreateMeeting from './components/CreateMeeting.jsx';
 import JoinMeeting from './components/JoinMeeting.jsx';
-
+import CreateParticipent from './components/CreateParticepent/CreateParticipent.jsx';
 // Custom theme configuration
 const theme = extendTheme({
   config: {
@@ -56,7 +56,7 @@ const AuthContext = React.createContext(null);
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const auth = React.useContext(AuthContext);
-  
+
   if (!auth.isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -96,8 +96,8 @@ function App() {
           <Box display="flex" flexDirection="column" minHeight="100vh">
             {/* Header */}
             {authContext.isAuthenticated && (
-              <Header 
-                title="Teams Meeting" 
+              <Header
+                title="Teams Meeting"
                 user={user}
                 onLogout={logout}
               />
@@ -109,12 +109,12 @@ function App() {
               {authContext.isAuthenticated && <SideNav />}
 
               {/* Routes */}
-              <Box 
+              <Box
                 className="main-content"
                 ml={authContext.isAuthenticated ? "280px" : "0"}
                 mt="4rem"
-                flex={1} 
-                p={6} 
+                flex={1}
+                p={6}
                 bg="gray.50"
               >
                 <Routes>
@@ -123,95 +123,104 @@ function App() {
                   <Route path="/register" element={<Signup />} />
 
                   {/* Protected Routes */}
-                  <Route 
-                    path="/" 
+                  <Route
+                    path="/"
                     element={(
                       <ProtectedRoute>
                         <HomePage />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/dashboard" 
+                  <Route
+                    path="/dashboard"
                     element={(
                       <ProtectedRoute>
                         <HomePage />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/chat" 
+                  <Route
+                    path="/chat"
                     element={(
                       <ProtectedRoute>
                         <Chat />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/calendar" 
+                  <Route
+                    path="/calendar"
                     element={(
                       <ProtectedRoute>
                         <Calendar />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/calls" 
+                  <Route
+                    path="/calls"
                     element={(
                       <ProtectedRoute>
                         <Calls />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/create-meeting" 
+                  <Route
+                    path="/create-meeting"
                     element={(
                       <ProtectedRoute>
                         <CreateMeeting />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/join-meeting" 
+                  <Route
+                    path="/join-meeting"
                     element={(
                       <ProtectedRoute>
                         <JoinMeeting />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/meetings" 
+                  <Route
+                    path="/meetings"
                     element={(
                       <ProtectedRoute>
                         <MeetingsPage />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/meeting/:roomId" 
+                  <Route
+                    path="/meeting/:roomId"
                     element={(
                       <ProtectedRoute>
                         <MeetingRoom />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  <Route 
-                    path="/profile" 
+
+                  <Route
+                    path="/create-participent"
+                    element={(
+                      <ProtectedRoute>
+                        <CreateParticipent />
+                      </ProtectedRoute>
+                    )}
+                  />
+                  <Route
+                    path="/profile"
                     element={(
                       <ProtectedRoute>
                         <ProfilePage />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
-                  
+
                   {/* 404 Route */}
-                  <Route 
-                    path="*" 
+                  <Route
+                    path="*"
                     element={(
                       <ProtectedRoute>
                         <NotFoundPage />
                       </ProtectedRoute>
-                    )} 
+                    )}
                   />
                 </Routes>
               </Box>

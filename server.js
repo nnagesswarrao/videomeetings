@@ -16,7 +16,7 @@ dotenv.config();
 const authRoutes = require('./src/routes/authRoutes');
 const meetingRoutes = require('./src/routes/meetingRoutes');
 const chatRoutes = require('./src/routes/chatRoutes');
-
+const participantsRtr=require('./src/routes/participantRoutes')
 // Create Express app
 const app = express();
 
@@ -63,6 +63,8 @@ app.use(bodyParser.json());
 app.use('/api/users', authRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/chat', chatRoutes);
+
+app.use('/api/participants', participantsRtr);
 
 // Logging middleware for debugging
 app.use((req, res, next) => {
