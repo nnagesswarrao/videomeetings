@@ -14,7 +14,7 @@ const SideNav = () => {
     { path: '/chat', icon: '💬', label: 'Chat' },
     { path: '/calendar', icon: '📅', label: 'Calendar' },
     { path: '/calls', icon: '📞', label: 'Calls' },
-    { path: '/create-meeting', icon: '➕', label: 'Create Meeting' },
+    // { path: '/create-meeting', icon: '➕', label: 'Create Meeting' },
     { path: '/join-meeting', icon: '➡️', label: 'Join Meeting' },
     { path: '/profile', icon: '👤', label: 'Profile' },
     { path: '/create-participent', icon: '👤', label: 'create-participent' },

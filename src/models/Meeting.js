@@ -23,8 +23,8 @@ class Meeting {
                    ${data?.host_id || null},
                    ${data.is_online_meeting ? 1 : 0},
                    ${data?.password || null},${data?.max_participants || null},
-                   '${onToConvertdateToTimeFormat(data?.start_time)}',
-                   '${onToConvertdateToTimeFormat(data?.end_time)}',
+                   '${(data?.start_time)}',
+                   '${(data?.end_time)}',
                    ${data.record_meeting ? 1 : 0},${data?.is_chat_enabled ? 1 : 0},
                    ${data?.is_screen_share_enabled ? 1 : 0},
                    'scheduled', CURRENT_TIMESTAMP())`;
@@ -48,7 +48,12 @@ class Meeting {
 
     static async getAllMeeting() {
         // console.log(meetingId, "=====")
-        const sql = ` SELECT * FROM meetings`;
+        const sql = ` SELECT  id,title,room_id,description,agenda,meeting_link,
+                      host_id,meeting_type,password,max_participants,
+                      DATE_FORMAT(start_time,'%Y-%m-%d %H:%i:%s') as start_time,
+                      DATE_FORMAT(end_time,'%Y-%m-%d %H:%i:%s') as end_time,is_recording_enabled,
+                      is_chat_enabled,is_screen_share_enabled,status,created_at,updated_at
+                    FROM meetings`;
         try {
             const meeting = await db.query(sql);
             // console.log(meeting, "=====")

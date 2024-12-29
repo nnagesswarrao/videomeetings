@@ -40,6 +40,7 @@ import {
     MdAdd
 } from 'react-icons/md';
 import { SearchIcon } from '@chakra-ui/icons';
+import { formatDateTime, parseDateTime } from '../utils/dateUtils';
 
 // Custom styles for DatePicker
 const datePickerStyles = {
@@ -51,16 +52,15 @@ const datePickerStyles = {
     }
 };
 
-const CreateMeeting = () => {
+const CreateMeeting = ({ isDrawer = false, onSuccess, onCancel }) => {
     const navigate = useNavigate();
     const toast = useToast();
 
     const [formData, setFormData] = useState({
         title: '',
         required_attendees: [],
-        optional_attendees: [],
-        start_time: new Date(),
-        end_time: new Date(new Date().setMinutes(new Date().getMinutes() + 30)),
+        start_time: formatDateTime(new Date()),
+        end_time: formatDateTime(new Date(new Date().setMinutes(new Date().getMinutes() + 30))),
         recurrence: 'none',
         channel: '',
         location: '',
@@ -98,7 +98,7 @@ const CreateMeeting = () => {
         }
     };
 
-    const handleSearchChange = (e, isRequired = true) => {
+    const handleSearchChange = (e) => {
         const query = e.target.value;
         setSearchQuery(query);
         
@@ -110,42 +110,36 @@ const CreateMeeting = () => {
 
         const filtered = participants.filter(participant =>
             participant.username.toLowerCase().includes(query.toLowerCase()) &&
-            !formData.required_attendees.includes(participant.id) &&
-            !formData.optional_attendees.includes(participant.id)
+            !formData.required_attendees.some(a => a.id === participant.id)
         );
         
         setSearchResults(filtered);
         setShowSearchResults(true);
     };
 
-    const addAttendee = (participant, isRequired = true) => {
+    const addAttendee = (participant) => {
         setFormData(prev => ({
             ...prev,
-            [isRequired ? 'required_attendees' : 'optional_attendees']: [
-                ...(prev[isRequired ? 'required_attendees' : 'optional_attendees'] || []),
-                participant
-            ]
+            required_attendees: [...prev.required_attendees, participant]
         }));
         setSearchQuery('');
         setSearchResults([]);
         setShowSearchResults(false);
     };
 
-    const removeAttendee = (participantId, isRequired = true) => {
+    const removeAttendee = (participantId) => {
         setFormData(prev => ({
             ...prev,
-            [isRequired ? 'required_attendees' : 'optional_attendees']: 
-                prev[isRequired ? 'required_attendees' : 'optional_attendees']
-                    .filter(a => a.id !== participantId)
+            required_attendees: prev.required_attendees.filter(a => a.id !== participantId)
         }));
     };
 
-    const AttendeeSearchInput = ({ isRequired = true }) => (
+    const AttendeeSearchInput = () => (
         <Box position="relative" width="full">
             <Input
-                placeholder={`Add ${isRequired ? 'required' : 'optional'} attendees`}
+                placeholder="Search and add attendees"
                 value={searchQuery}
-                onChange={(e) => handleSearchChange(e, isRequired)}
+                onChange={handleSearchChange}
                 pr="40px"
             />
             <SearchIcon
@@ -177,7 +171,7 @@ const CreateMeeting = () => {
                             py={2}
                             cursor="pointer"
                             _hover={{ bg: searchHoverBgColor }}
-                            onClick={() => addAttendee(participant, isRequired)}
+                            onClick={() => addAttendee(participant)}
                         >
                             <Text fontWeight="medium">{participant.username}</Text>
                             <Text fontSize="sm" color="gray.500">
@@ -204,7 +198,6 @@ const CreateMeeting = () => {
             const meetingData = {
                 ...formData,
                 required_attendees: formData.required_attendees.map(a => a.id),
-                optional_attendees: formData.optional_attendees.map(a => a.id),
             };
             
             const response = await fetch('http://localhost:5001/api/meetings/create', {
@@ -218,14 +211,18 @@ const CreateMeeting = () => {
             const data = await response.json();
 
             if (response.ok) {
-                toast({
-                    title: "Meeting Created",
-                    description: "Your meeting has been scheduled",
-                    status: "success",
-                    duration: 5000,
-                    isClosable: true,
-                });
-                // navigate(`/meeting/${data.meeting.id}`);
+                if (onSuccess) {
+                    onSuccess(data);
+                } else {
+                    toast({
+                        title: "Meeting Created",
+                        description: "Your meeting has been scheduled",
+                        status: "success",
+                        duration: 5000,
+                        isClosable: true,
+                    });
+                    navigate(`/dashboard`);
+                }
             } else {
                 toast({
                     title: "Error",
@@ -248,280 +245,220 @@ const CreateMeeting = () => {
     };
 
     return (
-        <Container maxW="container.xl" p={4}>
-            <Tabs>
-                <TabList mb={4}>
-                    <Tab>Details</Tab>
-                    <Tab>Scheduling Assistant</Tab>
-                </TabList>
+        <Container maxW={isDrawer ? "full" : "container.xl"} p={isDrawer ? 0 : 4}>
+            <form onSubmit={handleSubmit}>
+                <VStack spacing={6} align="stretch">
+                    {!isDrawer && (
+                        <Flex justify="space-between" mb={4}>
+                            <Text fontSize="xl" fontWeight="bold">New meeting</Text>
+                        </Flex>
+                    )}
 
-                <TabPanels>
-                    <TabPanel p={0}>
-                        <form onSubmit={handleSubmit}>
-                            <Grid templateColumns="3fr 1fr" gap={6}>
-                                {/* Main Form Content */}
-                                <GridItem>
-                                    <VStack spacing={6} align="stretch">
-                                        {/* Header */}
-                                        <Flex justify="space-between" mb={4}>
-                                            <Text fontSize="xl" fontWeight="bold">New meeting</Text>
-                                            <HStack spacing={3}>
-                                                <Button colorScheme="blue" type="submit">Save</Button>
-                                                <Button onClick={() => navigate(-1)}>Close</Button>
-                                            </HStack>
-                                        </Flex>
+                    {/* Title */}
+                    <Box borderBottom="1px" borderColor="gray.200" pb={4}>
+                        <HStack spacing={4}>
+                            <IconButton
+                                aria-label="Title"
+                                icon={<MdTitle />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Input
+                                name="title"
+                                placeholder="Add title"
+                                value={formData.title}
+                                onChange={handleInputChange}
+                                variant="unstyled"
+                                fontSize="lg"
+                            />
+                        </HStack>
+                    </Box>
 
-                                        {/* Title */}
-                                        <Box borderBottom="1px" borderColor="gray.200" pb={4}>
-                                            <HStack spacing={4}>
-                                                <IconButton
-                                                    aria-label="Title"
-                                                    icon={<MdTitle />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Input
-                                                    name="title"
-                                                    placeholder="Add title"
-                                                    value={formData.title}
-                                                    onChange={handleInputChange}
-                                                    variant="unstyled"
-                                                    fontSize="lg"
-                                                />
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Attendees */}
-                                        <Box>
-                                            <HStack align="start" spacing={4}>
-                                                <IconButton
-                                                    aria-label="Attendees"
-                                                    icon={<MdGroup />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <VStack align="stretch" width="full" spacing={3}>
-                                                    <Box>
-                                                        <Text mb={2} fontWeight="medium">Required</Text>
-                                                        <AttendeeSearchInput isRequired={true} />
-                                                        <Flex gap={2} mt={2} flexWrap="wrap">
-                                                            {formData.required_attendees?.map(attendee => (
-                                                                <Tag
-                                                                    key={attendee.id}
-                                                                    size="md"
-                                                                    borderRadius="full"
-                                                                    variant="solid"
-                                                                    colorScheme="blue"
-                                                                >
-                                                                    <TagLabel>{attendee.username}</TagLabel>
-                                                                    <TagCloseButton
-                                                                        onClick={() => removeAttendee(attendee.id, true)}
-                                                                    />
-                                                                </Tag>
-                                                            ))}
-                                                        </Flex>
-                                                    </Box>
-                                                    
-                                                    <Box>
-                                                        <Text mb={2} fontWeight="medium">Optional</Text>
-                                                        <AttendeeSearchInput isRequired={false} />
-                                                        <Flex gap={2} mt={2} flexWrap="wrap">
-                                                            {formData.optional_attendees?.map(attendee => (
-                                                                <Tag
-                                                                    key={attendee.id}
-                                                                    size="md"
-                                                                    borderRadius="full"
-                                                                    variant="subtle"
-                                                                    colorScheme="gray"
-                                                                >
-                                                                    <TagLabel>{attendee.username}</TagLabel>
-                                                                    <TagCloseButton
-                                                                        onClick={() => removeAttendee(attendee.id, false)}
-                                                                    />
-                                                                </Tag>
-                                                            ))}
-                                                        </Flex>
-                                                    </Box>
-                                                </VStack>
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Date/Time */}
-                                        <Box>
-                                            <HStack align="center" spacing={4}>
-                                                <IconButton
-                                                    aria-label="Time"
-                                                    icon={<MdAccessTime />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Flex gap={4} align="center" flex={1}>
-                                                    <Box flex={1}>
-                                                        <DatePicker
-                                                            selected={formData.start_time}
-                                                            onChange={date => setFormData(prev => ({ ...prev, start_time: date }))}
-                                                            showTimeSelect
-                                                            dateFormat="MMMM d, yyyy h:mm aa"
-                                                            customInput={
-                                                                <Input sx={datePickerStyles.input} />
-                                                            }
-                                                        />
-                                                    </Box>
-                                                    <Text>to</Text>
-                                                    <Box flex={1}>
-                                                        <DatePicker
-                                                            selected={formData.end_time}
-                                                            onChange={date => setFormData(prev => ({ ...prev, end_time: date }))}
-                                                            showTimeSelect
-                                                            dateFormat="MMMM d, yyyy h:mm aa"
-                                                            customInput={
-                                                                <Input sx={datePickerStyles.input} />
-                                                            }
-                                                        />
-                                                    </Box>
-                                                </Flex>
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Recurrence */}
-                                        <Box>
-                                            <HStack spacing={4}>
-                                                <IconButton
-                                                    aria-label="Recurrence"
-                                                    icon={<MdRepeat />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Select
-                                                    name="recurrence"
-                                                    value={formData.recurrence}
-                                                    onChange={handleInputChange}
-                                                    width="200px"
-                                                >
-                                                    <option value="none">Does not repeat</option>
-                                                    <option value="daily">Daily</option>
-                                                    <option value="weekly">Weekly</option>
-                                                    <option value="monthly">Monthly</option>
-                                                </Select>
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Channel */}
-                                        <Box>
-                                            <HStack spacing={4}>
-                                                <IconButton
-                                                    aria-label="Add channel"
-                                                    icon={<MdAdd />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Input
-                                                    name="channel"
-                                                    placeholder="Add channel"
-                                                    value={formData.channel}
-                                                    onChange={handleInputChange}
-                                                />
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Location */}
-                                        <Box>
-                                            <HStack spacing={4}>
-                                                <IconButton
-                                                    aria-label="Location"
-                                                    icon={<MdLocationOn />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Input
-                                                    name="location"
-                                                    placeholder="Add location"
-                                                    value={formData.location}
-                                                    onChange={handleInputChange}
-                                                />
-                                                <Switch
-                                                    name="is_online_meeting"
-                                                    isChecked={formData.is_online_meeting}
-                                                    onChange={handleInputChange}
-                                                />
-                                                <Text whiteSpace="nowrap">Online meeting</Text>
-                                            </HStack>
-                                        </Box>
-
-                                        {/* Description */}
-                                        <Box>
-                                            <HStack align="start" spacing={4}>
-                                                <IconButton
-                                                    aria-label="Description"
-                                                    icon={<MdDescription />}
-                                                    variant="ghost"
-                                                    size="sm"
-                                                />
-                                                <Textarea
-                                                    name="description"
-                                                    placeholder="Type details for this new meeting"
-                                                    value={formData.description}
-                                                    onChange={handleInputChange}
-                                                    minH="200px"
-                                                    resize="vertical"
-                                                />
-                                            </HStack>
-                                        </Box>
-                                    </VStack>
-                                </GridItem>
-
-                                {/* Right Sidebar */}
-                                <GridItem>
-                                    <VStack spacing={6} align="stretch" p={4} bg="gray.50" borderRadius="md">
-                                        <Box>
-                                            <Text fontWeight="bold" mb={2}>Show as</Text>
-                                            <Select
-                                                name="show_as"
-                                                value={formData.show_as}
-                                                onChange={handleInputChange}
-                                                bg="white"
+                    {/* Attendees */}
+                    <Box>
+                        <HStack align="start" spacing={4}>
+                            <IconButton
+                                aria-label="Attendees"
+                                icon={<MdGroup />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <VStack align="stretch" width="full" spacing={3}>
+                                <Box>
+                                    <Text mb={2} fontWeight="medium">Attendees</Text>
+                                    <AttendeeSearchInput />
+                                    <Flex gap={2} mt={2} flexWrap="wrap">
+                                        {formData.required_attendees?.map(attendee => (
+                                            <Tag
+                                                key={attendee.id}
+                                                size="md"
+                                                borderRadius="full"
+                                                variant="solid"
+                                                colorScheme="blue"
                                             >
-                                                <option value="busy">Busy</option>
-                                                <option value="free">Free</option>
-                                                <option value="tentative">Tentative</option>
-                                                <option value="away">Away</option>
-                                            </Select>
-                                        </Box>
-
-                                        <Box>
-                                            <Text fontWeight="bold" mb={2}>Response options</Text>
-                                            <HStack>
-                                                <Switch
-                                                    name="registration_required"
-                                                    isChecked={formData.registration_required}
-                                                    onChange={handleInputChange}
+                                                <TagLabel>{attendee.username}</TagLabel>
+                                                <TagCloseButton
+                                                    onClick={() => removeAttendee(attendee.id)}
                                                 />
-                                                <Text>Require registration</Text>
-                                            </HStack>
-                                        </Box>
+                                            </Tag>
+                                        ))}
+                                    </Flex>
+                                </Box>
+                            </VStack>
+                        </HStack>
+                    </Box>
 
-                                        <Box>
-                                            <Text fontWeight="bold" mb={2}>Meeting options</Text>
-                                            <HStack>
-                                                <Switch
-                                                    name="record_meeting"
-                                                    isChecked={formData.record_meeting}
-                                                    onChange={handleInputChange}
-                                                />
-                                                <Text>Record automatically</Text>
-                                            </HStack>
-                                        </Box>
-                                    </VStack>
-                                </GridItem>
-                            </Grid>
-                        </form>
-                    </TabPanel>
+                    {/* Date/Time */}
+                    <Box>
+                        <HStack align="center" spacing={4}>
+                            <IconButton
+                                aria-label="Time"
+                                icon={<MdAccessTime />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Flex gap={4} align="center" flex={1}>
+                                <Box flex={1}>
+                                    <DatePicker
+                                        selected={parseDateTime(formData.start_time)}
+                                        onChange={date => setFormData(prev => ({ 
+                                            ...prev, 
+                                            start_time: formatDateTime(date),
+                                            end_time: formatDateTime(new Date(date.getTime() + 30 * 60000))
+                                        }))}
+                                        showTimeSelect
+                                        dateFormat="yyyy-MM-dd HH:mm"
+                                        timeFormat="HH:mm"
+                                        timeIntervals={15}
+                                        customInput={
+                                            <Input sx={datePickerStyles.input} />
+                                        }
+                                    />
+                                </Box>
+                                <Text>to</Text>
+                                <Box flex={1}>
+                                    <DatePicker
+                                        selected={parseDateTime(formData.end_time)}
+                                        onChange={date => setFormData(prev => ({ 
+                                            ...prev, 
+                                            end_time: formatDateTime(date)
+                                        }))}
+                                        showTimeSelect
+                                        dateFormat="yyyy-MM-dd HH:mm"
+                                        timeFormat="HH:mm"
+                                        timeIntervals={15}
+                                        minDate={parseDateTime(formData.start_time)}
+                                        minTime={parseDateTime(formData.start_time)}
+                                        maxTime={new Date(new Date().setHours(23, 59))}
+                                        customInput={
+                                            <Input sx={datePickerStyles.input} />
+                                        }
+                                    />
+                                </Box>
+                            </Flex>
+                        </HStack>
+                    </Box>
 
-                    <TabPanel>
-                        <Text>Scheduling Assistant Content</Text>
-                    </TabPanel>
-                </TabPanels>
-            </Tabs>
+                    {/* Recurrence */}
+                    <Box>
+                        <HStack spacing={4}>
+                            <IconButton
+                                aria-label="Recurrence"
+                                icon={<MdRepeat />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Select
+                                name="recurrence"
+                                value={formData.recurrence}
+                                onChange={handleInputChange}
+                                width="200px"
+                            >
+                                <option value="none">Does not repeat</option>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </Select>
+                        </HStack>
+                    </Box>
+
+                    {/* Channel */}
+                    <Box>
+                        <HStack spacing={4}>
+                            <IconButton
+                                aria-label="Add channel"
+                                icon={<MdAdd />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Input
+                                name="channel"
+                                placeholder="Add channel"
+                                value={formData.channel}
+                                onChange={handleInputChange}
+                            />
+                        </HStack>
+                    </Box>
+
+                    {/* Location */}
+                    <Box>
+                        <HStack spacing={4}>
+                            <IconButton
+                                aria-label="Location"
+                                icon={<MdLocationOn />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Input
+                                name="location"
+                                placeholder="Add location"
+                                value={formData.location}
+                                onChange={handleInputChange}
+                            />
+                            <Switch
+                                name="is_online_meeting"
+                                isChecked={formData.is_online_meeting}
+                                onChange={handleInputChange}
+                            />
+                            <Text whiteSpace="nowrap">Online meeting</Text>
+                        </HStack>
+                    </Box>
+
+                    {/* Description */}
+                    <Box>
+                        <HStack align="start" spacing={4}>
+                            <IconButton
+                                aria-label="Description"
+                                icon={<MdDescription />}
+                                variant="ghost"
+                                size="sm"
+                            />
+                            <Textarea
+                                name="description"
+                                placeholder="Type details for this new meeting"
+                                value={formData.description}
+                                onChange={handleInputChange}
+                                minH="200px"
+                                resize="vertical"
+                            />
+                        </HStack>
+                    </Box>
+
+                    <HStack spacing={3} justify="flex-end">
+                        {isDrawer && (
+                            <Button onClick={onCancel}>
+                                Cancel
+                            </Button>
+                        )}
+                        <Button 
+                            colorScheme="blue" 
+                            type="submit"
+                        >
+                            Create Meeting
+                        </Button>
+                    </HStack>
+                </VStack>
+            </form>
         </Container>
     );
 };

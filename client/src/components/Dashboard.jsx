@@ -26,9 +26,19 @@ import {
     Card,
     CardBody,
     Icon,
+    Drawer,
+    DrawerBody,
+    DrawerHeader,
+    DrawerOverlay,
+    DrawerContent,
+    DrawerCloseButton,
+    useDisclosure,
+    IconButton,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { MdAdd, MdVideoCall, MdEvent, MdUpcoming, MdCheck } from 'react-icons/md';
+import { MdAdd, MdVideoCall, MdEvent, MdUpcoming, MdCheck, MdDelete, MdVisibility, MdPersonAdd } from 'react-icons/md';
+import CreateMeeting from './CreateMeeting';
+import { formatDateTime, parseDateTime } from '../utils/dateUtils';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -39,6 +49,7 @@ const Dashboard = () => {
         upcomingMeetings: 0,
         completedMeetings: 0
     });
+    const { isOpen, onOpen, onClose } = useDisclosure();
 
     useEffect(() => {
         fetchMeetings();
@@ -55,8 +66,8 @@ const Dashboard = () => {
             
             const processedMeetings = data.map(meeting => ({
                 ...meeting,
-                start_time: new Date(meeting.start_time),
-                end_time: new Date(meeting.end_time)
+                start_time: parseDateTime(meeting.start_time),
+                end_time: parseDateTime(meeting.end_time)
             }));
 
             // Calculate stats
@@ -90,14 +101,57 @@ const Dashboard = () => {
     };
 
     const handleJoinMeeting = (meetingId) => {
-        navigate(`/meeting-room/${meetingId}`);
+        navigate(`/meeting/${meetingId}`);
+    };
+
+    const handleDeleteMeeting = async (meetingId) => {
+        if (window.confirm('Are you sure you want to delete this meeting?')) {
+            try {
+                const response = await fetch(`http://localhost:5001/api/meetings/${meetingId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    toast({
+                        title: "Success",
+                        description: "Meeting deleted successfully",
+                        status: "success",
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                    fetchMeetings(); // Refresh the meetings list
+                } else {
+                    throw new Error('Failed to delete meeting');
+                }
+            } catch (error) {
+                toast({
+                    title: "Error",
+                    description: "Failed to delete meeting",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                });
+            }
+        }
+    };
+
+    const handleViewMeeting = (meeting) => {
+        // You can either navigate to a new page or open a drawer
+        navigate(`/meeting/view/${meeting.id}`);
+    };
+
+    const handleAddParticipants = (meeting) => {
+        navigate(`/meeting/participants/${meeting.id}`);
     };
 
     const renderMeetingGrid = (meetings, type) => {
         const now = new Date();
         const filteredMeetings = type === 'upcoming' 
-            ? meetings.filter(meeting => meeting.start_time > now)
-            : meetings.filter(meeting => meeting.end_time < now);
+            ? meetings.filter(meeting => new Date(meeting.start_time) > now)
+            : meetings.filter(meeting => new Date(meeting.end_time) < now);
 
         return (
             <Box overflowX="auto">
@@ -109,7 +163,7 @@ const Dashboard = () => {
                             <Th>Duration</Th>
                             <Th>Attendees</Th>
                             <Th>Status</Th>
-                            <Th>Action</Th>
+                            <Th>Actions</Th>
                         </Tr>
                     </Thead>
                     <Tbody>
@@ -117,8 +171,7 @@ const Dashboard = () => {
                             <Tr key={meeting.id}>
                                 <Td fontWeight="medium">{meeting.title}</Td>
                                 <Td>
-                                    {meeting.start_time.toLocaleDateString()} <br />
-                                    {meeting.start_time.toLocaleTimeString()}
+                                    {formatDateTime(meeting.start_time)}
                                 </Td>
                                 <Td>{meeting.duration} mins</Td>
                                 <Td>{meeting.required_attendees?.length || 0} required<br />
@@ -141,23 +194,70 @@ const Dashboard = () => {
                                     </Badge>
                                 </Td>
                                 <Td>
-                                    {type === 'upcoming' && (
+                                    <HStack spacing={2}>
+                                        {type === 'upcoming' && (
+                                            <Button
+                                                leftIcon={<MdVideoCall />}
+                                                colorScheme="blue"
+                                                size="sm"
+                                                onClick={() => handleJoinMeeting(meeting.id)}
+                                                title="Join Meeting"
+                                            >
+                                                Join
+                                            </Button>
+                                        )}
                                         <Button
-                                            leftIcon={<MdVideoCall />}
-                                            colorScheme="blue"
+                                            leftIcon={<MdVisibility />}
+                                            colorScheme="gray"
                                             size="sm"
-                                            onClick={() => handleJoinMeeting(meeting.id)}
+                                            onClick={() => handleViewMeeting(meeting)}
+                                            title="View Details"
                                         >
-                                            Join
+                                            View
                                         </Button>
-                                    )}
+                                        <Button
+                                            leftIcon={<MdPersonAdd />}
+                                            colorScheme="green"
+                                            size="sm"
+                                            onClick={() => handleAddParticipants(meeting)}
+                                            title="Add Participants"
+                                        >
+                                            Add
+                                        </Button>
+                                        <Button
+                                            leftIcon={<MdDelete />}
+                                            colorScheme="red"
+                                            size="sm"
+                                            onClick={() => handleDeleteMeeting(meeting.id)}
+                                            title="Delete Meeting"
+                                        >
+                                            Delete
+                                        </Button>
+                                    </HStack>
                                 </Td>
                             </Tr>
                         ))}
                     </Tbody>
                 </Table>
+                {filteredMeetings.length === 0 && (
+                    <Box textAlign="center" py={8} color="gray.500">
+                        No {type} meetings found
+                    </Box>
+                )}
             </Box>
         );
+    };
+
+    const handleMeetingCreated = () => {
+        onClose();
+        fetchMeetings();
+        toast({
+            title: "Meeting Created",
+            description: "Your meeting has been scheduled successfully",
+            status: "success",
+            duration: 3000,
+            isClosable: true,
+        });
     };
 
     return (
@@ -213,11 +313,35 @@ const Dashboard = () => {
                 <Button
                     leftIcon={<MdAdd />}
                     colorScheme="blue"
-                    onClick={() => navigate('/create-meeting')}
+                    onClick={onOpen}
                 >
                     Add Meeting
                 </Button>
             </HStack>
+
+            {/* Create Meeting Drawer */}
+            <Drawer
+                isOpen={isOpen}
+                placement="right"
+                onClose={onClose}
+                size="lg"
+            >
+                <DrawerOverlay />
+                <DrawerContent>
+                    <DrawerCloseButton />
+                    <DrawerHeader borderBottomWidth="1px">
+                        Create New Meeting
+                    </DrawerHeader>
+
+                    <DrawerBody>
+                        <CreateMeeting 
+                            isDrawer={true}
+                            onSuccess={handleMeetingCreated}
+                            onCancel={onClose}
+                        />
+                    </DrawerBody>
+                </DrawerContent>
+            </Drawer>
 
             {/* Meeting Grids */}
             <Tabs>
