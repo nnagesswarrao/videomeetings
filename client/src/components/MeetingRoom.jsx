@@ -215,7 +215,7 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive 
 // Video Grid Layout Component
 const VideoGrid = ({ peers, stream, userVideo, activeSpeakerId }) => {
   const { colorMode } = useColorMode();
-  const totalParticipants = peers.length + 1; // Including local user
+  const totalParticipants = peers.length + 1;
 
   const gridTemplateColumns = useMemo(() => {
     switch (totalParticipants) {
@@ -227,22 +227,18 @@ const VideoGrid = ({ peers, stream, userVideo, activeSpeakerId }) => {
       case 4:
         return 'repeat(2, 1fr)';
       default:
-        return 'repeat(3, 1fr)';
+        return 'repeat(auto-fit, minmax(400px, 1fr))';
     }
-  }, [totalParticipants]);
-
-  const gridTemplateRows = useMemo(() => {
-    if (totalParticipants <= 4) return 'repeat(2, 1fr)';
-    return 'repeat(3, 1fr)';
   }, [totalParticipants]);
 
   return (
     <Grid
       templateColumns={gridTemplateColumns}
-      templateRows={gridTemplateRows}
       gap={4}
       p={4}
       h="100%"
+      maxH="calc(100vh - 100px)"
+      overflow="hidden"
       bg={colorMode === 'dark' ? 'gray.800' : 'gray.100'}
     >
       {/* Local user video */}
@@ -285,7 +281,10 @@ const MeetingRoom = () => {
     isOpen: isParticipantsOpen, 
     onOpen: onParticipantsOpen, 
     onClose: onParticipantsClose 
-  } = useDisclosure();
+  } = useDisclosure({
+    defaultIsOpen: false
+  });
+  const { colorMode } = useColorMode();
 
   // User and meeting state
   const [userName, setUserName] = useState(location.state?.userName || 'Anonymous');
@@ -327,17 +326,28 @@ const MeetingRoom = () => {
     isOpen: isChatOpen,
     onOpen: onChatOpen,
     onClose: onChatClose
-  } = useDisclosure();
+  } = useDisclosure({
+    defaultIsOpen: false,
+    onClose: () => {
+      // Additional cleanup if needed
+    }
+  });
+
   const {
     isOpen: isTranscriptOpen,
     onOpen: onTranscriptOpen,
     onClose: onTranscriptClose
-  } = useDisclosure();
+  } = useDisclosure({
+    defaultIsOpen: false
+  });
+
   const {
     isOpen: isAnalyticsOpen,
     onOpen: onAnalyticsOpen,
     onClose: onAnalyticsClose
-  } = useDisclosure();
+  } = useDisclosure({
+    defaultIsOpen: false
+  });
 
   // Prepare sorted participants for rendering
   const sortedParticipants = useMemo(() => {
@@ -883,18 +893,96 @@ const MeetingRoom = () => {
     };
   }, []);
 
-  // Transcript and Analytics Drawers
+  // Prevent drawer from auto-closing
+  const handleDrawerClose = useCallback((closeFunction) => {
+    return (e) => {
+      e?.preventDefault();
+      closeFunction();
+    };
+  }, []);
+
+  // Modified Chat Drawer with improved stability
+  const ChatDrawer = () => (
+    <Drawer 
+      isOpen={isChatOpen} 
+      placement="right" 
+      onClose={handleDrawerClose(onChatClose)}
+      size="md"
+      closeOnOverlayClick={false}
+    >
+      <DrawerOverlay />
+      <DrawerContent bg="gray.900" color="white">
+        <DrawerHeader borderBottomWidth="1px" borderColor="gray.700">
+          Meeting Chat
+          <DrawerCloseButton onClick={handleDrawerClose(onChatClose)} />
+        </DrawerHeader>
+        <DrawerBody>
+          <VStack spacing={4} align="stretch" height="100%" overflowY="auto">
+            {chatMessages.map((msg, index) => (
+              <Flex 
+                key={index} 
+                direction="column" 
+                align={msg.userName === userName ? "flex-end" : "flex-start"}
+              >
+                <Box
+                  bg={msg.userName === userName ? "blue.500" : "gray.700"}
+                  color="white"
+                  borderRadius="lg"
+                  px={4}
+                  py={2}
+                  maxW="80%"
+                >
+                  <Text fontWeight="bold" fontSize="sm">
+                    {msg.userName}
+                  </Text>
+                  <Text>{msg.text}</Text>
+                  <Text fontSize="xs" opacity={0.7}>
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </Text>
+                </Box>
+              </Flex>
+            ))}
+          </VStack>
+        </DrawerBody>
+        <DrawerFooter borderTopWidth="1px" borderColor="gray.700">
+          <HStack width="full">
+            <Input
+              placeholder="Type your message"
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              bg="gray.800"
+              border="none"
+              _focus={{ ring: 2, ringColor: "blue.500" }}
+            />
+            <Button
+              colorScheme="blue"
+              onClick={sendMessage}
+              leftIcon={<FaPaperPlane />}
+            >
+              Send
+            </Button>
+          </HStack>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  );
+
+  // Modified Transcript Drawer
   const TranscriptDrawer = () => (
     <Drawer 
       isOpen={isTranscriptOpen} 
       placement="right" 
-      onClose={onTranscriptClose}
+      onClose={handleDrawerClose(onTranscriptClose)}
       size="md"
+      closeOnOverlayClick={false}
     >
       <DrawerOverlay />
-      <DrawerContent>
-        <DrawerCloseButton />
-        <DrawerHeader>Meeting Transcript</DrawerHeader>
+      <DrawerContent bg="gray.900" color="white">
+        <DrawerHeader borderBottomWidth="1px" borderColor="gray.700">
+          Meeting Transcript
+          <DrawerCloseButton onClick={handleDrawerClose(onTranscriptClose)} />
+        </DrawerHeader>
         <DrawerBody>
           <Textarea 
             value={generateTranscript(chatMessages)}
@@ -923,6 +1011,7 @@ const MeetingRoom = () => {
     </Drawer>
   );
 
+  // Modified Analytics Drawer
   const AnalyticsDrawer = () => {
     const analytics = calculateMeetingAnalytics(
       [
@@ -937,13 +1026,16 @@ const MeetingRoom = () => {
       <Drawer 
         isOpen={isAnalyticsOpen} 
         placement="right" 
-        onClose={onAnalyticsClose}
+        onClose={handleDrawerClose(onAnalyticsClose)}
         size="md"
+        closeOnOverlayClick={false}
       >
         <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader>Meeting Analytics</DrawerHeader>
+        <DrawerContent bg="gray.900" color="white">
+          <DrawerHeader borderBottomWidth="1px" borderColor="gray.700">
+            Meeting Analytics
+            <DrawerCloseButton onClick={handleDrawerClose(onAnalyticsClose)} />
+          </DrawerHeader>
           <DrawerBody>
             <VStack spacing={4} align="stretch">
               <HStack>
@@ -973,109 +1065,59 @@ const MeetingRoom = () => {
     );
   };
 
-  // Chat Drawer
-  const ChatDrawer = () => (
-    <Drawer 
-      isOpen={isChatOpen} 
-      placement="right" 
-      onClose={onChatClose}
-      size="md"
-    >
-      <DrawerOverlay />
-      <DrawerContent>
-        <DrawerCloseButton />
-        <DrawerHeader>Meeting Chat</DrawerHeader>
-        <DrawerBody>
-          <VStack spacing={4} align="stretch" height="100%" overflowY="auto">
-            {chatMessages.map((msg, index) => (
-              <Flex 
-                key={index} 
-                direction="column" 
-                align={msg.userName === userName ? "flex-end" : "flex-start"}
-              >
-                <Tag 
-                  size="md" 
-                  variant="solid" 
-                  colorScheme={msg.userName === userName ? "blue" : "green"}
-                >
-                  <TagLabel>{msg.text}</TagLabel>
-                  <TagRightIcon as={FaInfoCircle} />
-                </Tag>
-                <Text fontSize="xs" color="gray.500">
-                  {msg.userName} at {new Date(msg.timestamp).toLocaleTimeString()}
-                </Text>
-              </Flex>
-            ))}
-          </VStack>
-        </DrawerBody>
-        <DrawerFooter>
-          <HStack width="full">
-            <Input 
-              placeholder="Type your message" 
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            />
-            <Button 
-              colorScheme="blue" 
-              onClick={sendMessage}
-            >
-              <FaPaperPlane />
-            </Button>
-          </HStack>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
-  );
-
-  // Utility function to format duration
-  const formatDuration = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
+  // Modified Participants Modal
   const ParticipantsModal = ({ 
     isOpen, 
     onClose, 
     userName, 
-    peers, 
-    raisedHandUsers, 
+    peers = [], 
+    raisedHandUsers = [], 
     muteParticipant, 
     removeParticipant 
   }) => {
     const { colorMode } = useColorMode();
 
     return (
-      <Modal isOpen={isOpen} onClose={onClose} size="xl">
-        <ModalOverlay 
-          bg={colorMode === 'dark' ? 'blackAlpha.700' : 'whiteAlpha.700'}
-          backdropFilter='blur(10px)'
-        />
-        <ModalContent 
-          bg={colorMode === 'dark' ? 'gray.800' : 'white'}
-          borderRadius="xl"
-          boxShadow="2xl"
-        >
-          <ModalHeader 
-            bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
-            borderTopRadius="xl"
-            display="flex"
-            alignItems="center"
-          >
-            <FaUsers style={{ marginRight: '10px' }} />
-            <Text>Meeting Participants</Text>
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose}
+        closeOnOverlayClick={false}
+        size="xl"
+      >
+        <ModalOverlay />
+        <ModalContent bg="gray.900" color="white">
+          <ModalHeader borderBottomWidth="1px" borderColor="gray.700">
+            Participants ({peers?.length + 1})
+            <ModalCloseButton onClick={onClose} />
           </ModalHeader>
-          <ModalCloseButton />
           <ModalBody p={6}>
             <VStack spacing={4} align="stretch">
-              {[
-                { name: userName, isLocal: true },
-                ...peers.map(p => ({ name: p.userName, isLocal: false }))
-              ].map((participant, index) => (
+              {/* Local user */}
+              <Flex 
+                justifyContent="space-between"
+                alignItems="center"
+                bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
+                p={3}
+                borderRadius="md"
+              >
+                <HStack spacing={3}>
+                  <Avatar 
+                    name={userName} 
+                    size="sm" 
+                    bg="green.500"
+                  />
+                  <Text fontWeight="medium">{userName}</Text>
+                  {raisedHandUsers.includes(userName) && (
+                    <FaHandPaper color="orange" />
+                  )}
+                  <Badge colorScheme="green">You</Badge>
+                </HStack>
+              </Flex>
+
+              {/* Remote participants */}
+              {Array.isArray(peers) && peers.map((peer, index) => (
                 <Flex 
-                  key={index} 
+                  key={peer.peerId || index}
                   justifyContent="space-between"
                   alignItems="center"
                   bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
@@ -1089,42 +1131,37 @@ const MeetingRoom = () => {
                 >
                   <HStack spacing={3}>
                     <Avatar 
-                      name={participant.name} 
+                      name={peer.userName} 
                       size="sm" 
-                      bg={participant.isLocal ? "green.500" : "blue.500"}
+                      bg="blue.500"
                     />
-                    <Text fontWeight="medium">{participant.name}</Text>
-                    {raisedHandUsers.includes(participant.name) && (
+                    <Text fontWeight="medium">{peer.userName}</Text>
+                    {raisedHandUsers.includes(peer.userName) && (
                       <FaHandPaper color="orange" />
                     )}
-                    {participant.isLocal && (
-                      <Badge colorScheme="green" ml={2}>You</Badge>
-                    )}
                   </HStack>
-                  {!participant.isLocal && (
-                    <HStack spacing={2}>
-                      <Tooltip label="Mute Participant">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          colorScheme="yellow"
-                          onClick={() => muteParticipant(participant.name)}
-                        >
-                          <FaMicrophoneSlash />
-                        </Button>
-                      </Tooltip>
-                      <Tooltip label="Remove Participant">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          colorScheme="red"
-                          onClick={() => removeParticipant(participant.name)}
-                        >
-                          <FaUserTimes />
-                        </Button>
-                      </Tooltip>
-                    </HStack>
-                  )}
+                  <HStack spacing={2}>
+                    <Tooltip label="Mute Participant">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        colorScheme="yellow"
+                        onClick={() => muteParticipant(peer.peerId)}
+                      >
+                        <FaMicrophoneSlash />
+                      </Button>
+                    </Tooltip>
+                    <Tooltip label="Remove Participant">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        colorScheme="red"
+                        onClick={() => removeParticipant(peer.peerId)}
+                      >
+                        <FaUserTimes />
+                      </Button>
+                    </Tooltip>
+                  </HStack>
                 </Flex>
               ))}
             </VStack>
@@ -1139,6 +1176,24 @@ const MeetingRoom = () => {
       </Modal>
     );
   };
+
+  // Sidebar buttons with improved handling
+  const SidebarButton = ({ icon, label, onClick, isActive }) => (
+    <Button
+      leftIcon={icon}
+      onClick={onClick}
+      variant="ghost"
+      justifyContent="flex-start"
+      w="full"
+      color={isActive ? "blue.400" : "white"}
+      bg={isActive ? "whiteAlpha.100" : "transparent"}
+      _hover={{
+        bg: "whiteAlpha.200"
+      }}
+    >
+      {label}
+    </Button>
+  );
 
   // Media control methods
   const toggleAudio = () => {
@@ -1166,108 +1221,166 @@ const MeetingRoom = () => {
     navigate('/meetings');
   };
 
+  const formatDuration = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <Box display="flex" flexDirection="column" height="100vh">
-      {/* Meeting Header */}
-      <Box 
-        bg="blue.500" 
-        color="white" 
-        p={4} 
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <Text fontSize="xl">{meetingDetails?.title || 'Meeting Room'}</Text>
-        <HStack spacing={4}>
-          <Badge colorScheme="green">
-            Participants: {peers.length + 1}
-          </Badge>
-          <Text>Duration: {formatDuration(meetingDuration)}</Text>
-          <Tooltip label="Participants">
-            <Button onClick={onParticipantsOpen} variant="ghost" color="white">
-              <FaUsers />
-            </Button>
-          </Tooltip>
-          <Tooltip label="Chat">
-            <Button onClick={onChatOpen} variant="ghost" color="white">
-              <FaComments />
-            </Button>
-          </Tooltip>
-          <Tooltip label="Transcript">
-            <Button onClick={onTranscriptOpen} variant="ghost" color="white">
-              <FaFileAlt />
-            </Button>
-          </Tooltip>
-          <Tooltip label="Analytics">
-            <Button onClick={onAnalyticsOpen} variant="ghost" color="white">
-              <FaChartBar />
-            </Button>
-          </Tooltip>
-        </HStack>
-      </Box>
-
-      {/* Video Layout */}
-      <Box 
-        flex={1} 
-        p={4} 
+    <Flex height="100vh" overflow="hidden">
+      {/* Sidebar */}
+      <Box
+        w="250px"
         bg="gray.900"
+        color="white"
+        p={4}
+        borderRight="1px solid"
+        borderColor="gray.700"
       >
-        {renderParticipantLayout()}
+        <VStack spacing={6} align="stretch">
+          <Box>
+            <Text fontSize="xl" fontWeight="bold" mb={4}>
+              {meetingDetails?.title || 'Meeting Room'}
+            </Text>
+            <HStack>
+              <Badge colorScheme="green">
+                {peers.length + 1} Participants
+              </Badge>
+              <Badge colorScheme="blue">
+                {formatDuration(meetingDuration)}
+              </Badge>
+            </HStack>
+          </Box>
+
+          <VStack align="stretch" spacing={3}>
+            <SidebarButton
+              icon={<FaUsers />}
+              label="Participants"
+              onClick={onParticipantsOpen}
+              isActive={isParticipantsOpen}
+            />
+            <SidebarButton
+              icon={<FaComments />}
+              label="Chat"
+              onClick={onChatOpen}
+              isActive={isChatOpen}
+            />
+            <SidebarButton
+              icon={<FaFileAlt />}
+              label="Transcript"
+              onClick={onTranscriptOpen}
+              isActive={isTranscriptOpen}
+            />
+            <SidebarButton
+              icon={<FaChartBar />}
+              label="Analytics"
+              onClick={onAnalyticsOpen}
+              isActive={isAnalyticsOpen}
+            />
+          </VStack>
+
+          <Box mt="auto">
+            <Button
+              leftIcon={<FaPhoneSlash />}
+              colorScheme="red"
+              width="100%"
+              onClick={leaveMeeting}
+            >
+              Leave Meeting
+            </Button>
+          </Box>
+        </VStack>
       </Box>
 
-      {/* Video Controls */}
-      <HStack 
-        justifyContent="center" 
-        spacing={4} 
-        p={4} 
-        bg="gray.800"
-      >
-        <Button 
-          onClick={toggleAudio} 
-          colorScheme={audioEnabled ? "blue" : "red"}
-        >
-          {audioEnabled ? <FaMicrophone /> : <FaMicrophoneSlash />}
-        </Button>
-        
-        <Button 
-          onClick={toggleVideo} 
-          colorScheme={videoEnabled ? "blue" : "red"}
-        >
-          {videoEnabled ? <FaVideo /> : <FaVideoSlash />}
-        </Button>
-        
-        <Button 
-          onClick={toggleScreenShare} 
-          colorScheme={screenShare ? "green" : "blue"}
-        >
-          <FaDesktop />
-        </Button>
-        
-        <Button 
-          onClick={raiseHand} 
-          colorScheme="yellow"
-        >
-          <FaHandPaper />
-        </Button>
-        
-        <Button 
-          onClick={isRecording ? stopRecording : startRecording}
-          colorScheme={isRecording ? "red" : "purple"}
-        >
-          {isRecording ? <FaStopCircle /> : <FaRecordVinyl />}
-        </Button>
-        
-        <Button 
-          onClick={leaveMeeting} 
-          colorScheme="red"
-        >
-          <FaPhoneSlash />
-        </Button>
-      </HStack>
+      {/* Main Content */}
+      <Flex flex="1" direction="column">
+        {/* Video Grid */}
+        <Box flex="1" bg="gray.800" position="relative">
+          {renderParticipantLayout()}
+          
+          {/* Floating Controls */}
+          <HStack
+            position="absolute"
+            bottom={4}
+            left="50%"
+            transform="translateX(-50%)"
+            spacing={2}
+            bg="rgba(0, 0, 0, 0.6)"
+            p={2}
+            borderRadius="full"
+            backdropFilter="blur(10px)"
+          >
+            <Tooltip label={audioEnabled ? 'Mute' : 'Unmute'}>
+              <Button
+                onClick={toggleAudio}
+                colorScheme={audioEnabled ? "blue" : "red"}
+                size="lg"
+                borderRadius="full"
+                variant="ghost"
+              >
+                {audioEnabled ? <FaMicrophone /> : <FaMicrophoneSlash />}
+              </Button>
+            </Tooltip>
 
-      {/* Participants Modal */}
+            <Tooltip label={videoEnabled ? 'Stop Video' : 'Start Video'}>
+              <Button
+                onClick={toggleVideo}
+                colorScheme={videoEnabled ? "blue" : "red"}
+                size="lg"
+                borderRadius="full"
+                variant="ghost"
+              >
+                {videoEnabled ? <FaVideo /> : <FaVideoSlash />}
+              </Button>
+            </Tooltip>
+
+            <Tooltip label={screenShare ? 'Stop Sharing' : 'Share Screen'}>
+              <Button
+                onClick={toggleScreenShare}
+                colorScheme={screenShare ? "green" : "blue"}
+                size="lg"
+                borderRadius="full"
+                variant="ghost"
+              >
+                <FaDesktop />
+              </Button>
+            </Tooltip>
+
+            <Tooltip label="Raise Hand">
+              <Button
+                onClick={raiseHand}
+                colorScheme="yellow"
+                size="lg"
+                borderRadius="full"
+                variant="ghost"
+              >
+                <FaHandPaper />
+              </Button>
+            </Tooltip>
+
+            <Tooltip label={isRecording ? 'Stop Recording' : 'Start Recording'}>
+              <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                colorScheme={isRecording ? "red" : "purple"}
+                size="lg"
+                borderRadius="full"
+                variant="ghost"
+              >
+                {isRecording ? <FaStopCircle /> : <FaRecordVinyl />}
+              </Button>
+            </Tooltip>
+          </HStack>
+        </Box>
+      </Flex>
+
+      {/* Drawers */}
+      <ChatDrawer />
+      <TranscriptDrawer />
+      <AnalyticsDrawer />
       <ParticipantsModal 
-        isOpen={isParticipantsOpen}
+        isOpen={isParticipantsOpen} 
         onClose={onParticipantsClose}
         userName={userName}
         peers={peers}
@@ -1275,12 +1388,7 @@ const MeetingRoom = () => {
         muteParticipant={muteParticipant}
         removeParticipant={removeParticipant}
       />
-
-      {/* New Drawers */}
-      <ChatDrawer />
-      <TranscriptDrawer />
-      <AnalyticsDrawer />
-    </Box>
+    </Flex>
   );
 };
 
