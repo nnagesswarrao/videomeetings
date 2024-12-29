@@ -17,6 +17,7 @@ const SideNav = () => {
     { path: '/create-meeting', icon: '➕', label: 'Create Meeting' },
     { path: '/join-meeting', icon: '➡️', label: 'Join Meeting' },
     { path: '/profile', icon: '👤', label: 'Profile' },
+    { path: '/create-participent', icon: '👤', label: 'create-participent' },
   ];
 
   const toggleSidebar = () => {
@@ -32,7 +33,7 @@ const SideNav = () => {
       <div className="logo">
         <h2>{isExpanded ? 'Video Meeting' : 'VM'}</h2>
       </div>
-{/*       
+      {/*       
       {isExpanded && (
         <div className="calendar-widget">
           <Calendar
