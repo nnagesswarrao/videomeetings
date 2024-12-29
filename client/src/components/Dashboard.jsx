@@ -34,11 +34,17 @@ import {
     DrawerCloseButton,
     useDisclosure,
     IconButton,
+    Select,
+    Input,
+    FormControl,
+    FormLabel,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { MdAdd, MdVideoCall, MdEvent, MdUpcoming, MdCheck, MdDelete, MdVisibility, MdPersonAdd } from 'react-icons/md';
 import CreateMeeting from './CreateMeeting';
 import { formatDateTime, parseDateTime } from '../utils/dateUtils';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -50,6 +56,11 @@ const Dashboard = () => {
         completedMeetings: 0
     });
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const [dateFilter, setDateFilter] = useState({
+        startDate: null,
+        endDate: null
+    });
+    const [filterType, setFilterType] = useState('all'); // 'all', 'today', 'week', 'month', 'custom'
 
     useEffect(() => {
         fetchMeetings();
@@ -147,103 +158,226 @@ const Dashboard = () => {
         navigate(`/meeting/participants/${meeting.id}`);
     };
 
-    const renderMeetingGrid = (meetings, type) => {
+    const getFilteredMeetings = (meetings, type, filterType, dateFilter) => {
         const now = new Date();
-        const filteredMeetings = type === 'upcoming' 
+        let filteredByStatus = type === 'upcoming' 
             ? meetings.filter(meeting => new Date(meeting.start_time) > now)
             : meetings.filter(meeting => new Date(meeting.end_time) < now);
 
+        // Apply date filter
+        switch (filterType) {
+            case 'today':
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                return filteredByStatus.filter(meeting => 
+                    new Date(meeting.start_time) >= today && 
+                    new Date(meeting.start_time) < tomorrow
+                );
+
+            case 'week':
+                const weekStart = new Date();
+                weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                weekStart.setHours(0, 0, 0, 0);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekEnd.getDate() + 7);
+                return filteredByStatus.filter(meeting => 
+                    new Date(meeting.start_time) >= weekStart && 
+                    new Date(meeting.start_time) < weekEnd
+                );
+
+            case 'month':
+                const monthStart = new Date();
+                monthStart.setDate(1);
+                monthStart.setHours(0, 0, 0, 0);
+                const monthEnd = new Date(monthStart);
+                monthEnd.setMonth(monthEnd.getMonth() + 1);
+                return filteredByStatus.filter(meeting => 
+                    new Date(meeting.start_time) >= monthStart && 
+                    new Date(meeting.start_time) < monthEnd
+                );
+
+            case 'custom':
+                if (dateFilter.startDate && dateFilter.endDate) {
+                    return filteredByStatus.filter(meeting => 
+                        new Date(meeting.start_time) >= dateFilter.startDate && 
+                        new Date(meeting.start_time) <= dateFilter.endDate
+                    );
+                }
+                return filteredByStatus;
+
+            default:
+                return filteredByStatus;
+        }
+    };
+
+    const renderMeetingGrid = (meetings, type) => {
+        const filteredMeetings = getFilteredMeetings(meetings, type, filterType, dateFilter);
+        const now = new Date();
+
         return (
-            <Box overflowX="auto">
-                <Table variant="simple">
-                    <Thead>
-                        <Tr>
-                            <Th>Title</Th>
-                            <Th>Date & Time</Th>
-                            <Th>Duration</Th>
-                            <Th>Attendees</Th>
-                            <Th>Status</Th>
-                            <Th>Actions</Th>
-                        </Tr>
-                    </Thead>
-                    <Tbody>
-                        {filteredMeetings.map(meeting => (
-                            <Tr key={meeting.id}>
-                                <Td fontWeight="medium">{meeting.title}</Td>
-                                <Td>
-                                    {formatDateTime(meeting.start_time)}
-                                </Td>
-                                <Td>{meeting.duration} mins</Td>
-                                <Td>{meeting.required_attendees?.length || 0} required<br />
-                                    {meeting.optional_attendees?.length || 0} optional</Td>
-                                <Td>
-                                    <Badge 
-                                        colorScheme={
-                                            meeting.start_time > now 
-                                                ? 'blue' 
-                                                : meeting.end_time < now 
-                                                    ? 'gray' 
-                                                    : 'green'
+            <Box>
+                {/* Date Filter Controls */}
+                <Box mb={4} p={4} bg="gray.50" borderRadius="md">
+                    <HStack spacing={4} align="flex-end">
+                        <FormControl w="200px">
+                            <FormLabel>Filter by</FormLabel>
+                            <Select 
+                                value={filterType}
+                                onChange={(e) => {
+                                    setFilterType(e.target.value);
+                                    if (e.target.value !== 'custom') {
+                                        setDateFilter({ startDate: null, endDate: null });
+                                    }
+                                }}
+                            >
+                                <option value="all">All Meetings</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="custom">Custom Range</option>
+                            </Select>
+                        </FormControl>
+
+                        {filterType === 'custom' && (
+                            <>
+                                <FormControl w="200px">
+                                    <FormLabel>Start Date</FormLabel>
+                                    <DatePicker
+                                        selected={dateFilter.startDate}
+                                        onChange={date => setDateFilter(prev => ({ 
+                                            ...prev, 
+                                            startDate: date 
+                                        }))}
+                                        dateFormat="yyyy-MM-dd"
+                                        customInput={
+                                            <Input />
                                         }
-                                    >
-                                        {meeting.start_time > now 
-                                            ? 'Upcoming' 
-                                            : meeting.end_time < now 
-                                                ? 'Completed' 
-                                                : 'In Progress'}
-                                    </Badge>
-                                </Td>
-                                <Td>
-                                    <HStack spacing={2}>
-                                        {type === 'upcoming' && (
-                                            <Button
-                                                leftIcon={<MdVideoCall />}
-                                                colorScheme="blue"
-                                                size="sm"
-                                                onClick={() => handleJoinMeeting(meeting.id)}
-                                                title="Join Meeting"
-                                            >
-                                                Join
-                                            </Button>
-                                        )}
-                                        <Button
-                                            leftIcon={<MdVisibility />}
-                                            colorScheme="gray"
-                                            size="sm"
-                                            onClick={() => handleViewMeeting(meeting)}
-                                            title="View Details"
-                                        >
-                                            View
-                                        </Button>
-                                        <Button
-                                            leftIcon={<MdPersonAdd />}
-                                            colorScheme="green"
-                                            size="sm"
-                                            onClick={() => handleAddParticipants(meeting)}
-                                            title="Add Participants"
-                                        >
-                                            Add
-                                        </Button>
-                                        <Button
-                                            leftIcon={<MdDelete />}
-                                            colorScheme="red"
-                                            size="sm"
-                                            onClick={() => handleDeleteMeeting(meeting.id)}
-                                            title="Delete Meeting"
-                                        >
-                                            Delete
-                                        </Button>
-                                    </HStack>
-                                </Td>
+                                    />
+                                </FormControl>
+
+                                <FormControl w="200px">
+                                    <FormLabel>End Date</FormLabel>
+                                    <DatePicker
+                                        selected={dateFilter.endDate}
+                                        onChange={date => setDateFilter(prev => ({ 
+                                            ...prev, 
+                                            endDate: date 
+                                        }))}
+                                        dateFormat="yyyy-MM-dd"
+                                        minDate={dateFilter.startDate}
+                                        customInput={
+                                            <Input />
+                                        }
+                                    />
+                                </FormControl>
+
+                                <Button
+                                    colorScheme="blue"
+                                    size="sm"
+                                    onClick={() => setDateFilter({ startDate: null, endDate: null })}
+                                >
+                                    Clear Dates
+                                </Button>
+                            </>
+                        )}
+                    </HStack>
+                </Box>
+
+                <Box overflowX="auto">
+                    <Table variant="simple">
+                        <Thead>
+                            <Tr>
+                                <Th>Title</Th>
+                                <Th>Date & Time</Th>
+                                <Th>Duration</Th>
+                                <Th>Attendees</Th>
+                                <Th>Status</Th>
+                                <Th>Actions</Th>
                             </Tr>
-                        ))}
-                    </Tbody>
-                </Table>
-                {filteredMeetings.length === 0 && (
-                    <Box textAlign="center" py={8} color="gray.500">
-                        No {type} meetings found
-                    </Box>
-                )}
+                        </Thead>
+                        <Tbody>
+                            {filteredMeetings.map(meeting => (
+                                <Tr key={meeting.id}>
+                                    <Td fontWeight="medium">{meeting.title}</Td>
+                                    <Td>
+                                        {formatDateTime(meeting.start_time)}
+                                    </Td>
+                                    <Td>{meeting.duration} mins</Td>
+                                    <Td>{meeting.required_attendees?.length || 0} required<br />
+                                        {meeting.optional_attendees?.length || 0} optional</Td>
+                                    <Td>
+                                        <Badge 
+                                            colorScheme={
+                                                meeting.start_time > now 
+                                                    ? 'blue' 
+                                                    : meeting.end_time < now 
+                                                        ? 'gray' 
+                                                        : 'green'
+                                            }
+                                        >
+                                            {meeting.start_time > now 
+                                                ? 'Upcoming' 
+                                                : meeting.end_time < now 
+                                                    ? 'Completed' 
+                                                    : 'In Progress'}
+                                        </Badge>
+                                    </Td>
+                                    <Td>
+                                        <HStack spacing={2}>
+                                            {type === 'upcoming' && (
+                                                <>
+                                                    <Button
+                                                        leftIcon={<MdVideoCall />}
+                                                        colorScheme="blue"
+                                                        size="sm"
+                                                        onClick={() => handleJoinMeeting(meeting.id)}
+                                                        title="Join Meeting"
+                                                    >
+                                                        Join
+                                                    </Button>
+                                                    <Button
+                                                        leftIcon={<MdPersonAdd />}
+                                                        colorScheme="green"
+                                                        size="sm"
+                                                        onClick={() => handleAddParticipants(meeting)}
+                                                        title="Add Participants"
+                                                    >
+                                                        Add
+                                                    </Button>
+                                                    <Button
+                                                        leftIcon={<MdDelete />}
+                                                        colorScheme="red"
+                                                        size="sm"
+                                                        onClick={() => handleDeleteMeeting(meeting.id)}
+                                                        title="Delete Meeting"
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </>
+                                            )}
+                                            <Button
+                                                leftIcon={<MdVisibility />}
+                                                colorScheme="gray"
+                                                size="sm"
+                                                onClick={() => handleViewMeeting(meeting)}
+                                                title="View Details"
+                                            >
+                                                View
+                                            </Button>
+                                        </HStack>
+                                    </Td>
+                                </Tr>
+                            ))}
+                        </Tbody>
+                    </Table>
+                    {filteredMeetings.length === 0 && (
+                        <Box textAlign="center" py={8} color="gray.500">
+                            No {type} meetings found
+                        </Box>
+                    )}
+                </Box>
             </Box>
         );
     };
