@@ -2,7 +2,6 @@ import React from 'react';
 import { 
     Box, 
     Flex, 
-    Input, 
     Text, 
     Avatar, 
     Menu,
@@ -14,7 +13,6 @@ import {
     useColorMode
 } from '@chakra-ui/react';
 import { 
-    SearchIcon, 
     BellIcon, 
     MoonIcon, 
     SunIcon, 
@@ -32,8 +30,6 @@ const lightColors = {
     headerBg: 'white',
     headerShadow: 'md',
     textColor: 'blue.600',
-    inputBg: 'gray.100',
-    iconColor: 'gray.500',
     actionColor: 'gray.600',
     hoverBg: 'gray.100',
     hoverColor: 'blue.600'
@@ -43,8 +39,6 @@ const darkColors = {
     headerBg: 'gray.800',
     headerShadow: 'dark-lg',
     textColor: 'blue.300',
-    inputBg: 'gray.700',
-    iconColor: 'gray.300',
     actionColor: 'gray.300',
     hoverBg: 'gray.700',
     hoverColor: 'blue.300'
@@ -59,17 +53,12 @@ const Header = ({
     },
     onLogout
 }) => {
-    const [searchQuery, setSearchQuery] = React.useState('');
     const { colorMode, toggleColorMode } = useColorMode();
     const navigate = useNavigate();
     const { isExpanded, toggleSidebar } = useSidebar();
 
     // Compute color values based on color mode
     const colors = colorMode === 'light' ? lightColors : darkColors;
-
-    const handleSearchChange = (e) => {
-        setSearchQuery(e.target.value);
-    };
 
     // Memoize header actions to prevent unnecessary re-renders
     const headerActions = React.useMemo(() => [
@@ -84,7 +73,6 @@ const Header = ({
             onClick: () => console.log('Open Notifications')
         },
         { 
-            // Pre-compute icon and label outside of render
             icon: colorMode === 'light' ? <MoonIcon /> : <SunIcon />, 
             label: `Switch to ${colorMode === 'light' ? 'Dark' : 'Light'} Mode`,
             onClick: toggleColorMode
@@ -129,33 +117,6 @@ const Header = ({
                 >
                     {title}
                 </Text>
-            </Flex>
-
-            {/* Search Bar */}
-            <Flex 
-                flex={1} 
-                maxWidth="500px" 
-                mx={6}
-                position="relative"
-            >
-                <Input 
-                    placeholder="Search meetings, people, files..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    variant="filled"
-                    bg={colors.inputBg}
-                    borderRadius="full"
-                    pl="2.5rem"
-                    pr="1rem"
-                />
-                <Box 
-                    position="absolute" 
-                    left="0.75rem" 
-                    top="50%" 
-                    transform="translateY(-50%)"
-                >
-                    <SearchIcon color={colors.iconColor} />
-                </Box>
             </Flex>
 
             {/* Header Actions */}
