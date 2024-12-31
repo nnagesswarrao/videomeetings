@@ -3,11 +3,11 @@ import {
     Box, 
     VStack, 
     Text,
-    useColorMode 
+    useColorMode,
+    Flex
 } from '@chakra-ui/react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
-import './SideNav.css';
 
 const SideNav = () => {
     const location = useLocation();
@@ -18,7 +18,7 @@ const SideNav = () => {
         { path: '/dashboard', icon: '📊', label: 'Dashboard' },
         { path: '/join-meeting', icon: '➡️', label: 'Join Meeting' },
         { path: '/profile', icon: '👤', label: 'Profile' },
-        { path: '/create-participent', icon: '👤', label: 'create-participent' },
+        { path: '/create-participent', icon: '👤', label: 'Create Participant' },
     ];
 
     return (
@@ -32,6 +32,7 @@ const SideNav = () => {
             boxShadow="0 4px 12px 0 rgba(0, 0, 0, 0.05)"
             transition="all 0.3s ease"
             zIndex={1100}
+            overflowX="hidden"
         >
             <Box
                 h="70px"
@@ -52,28 +53,77 @@ const SideNav = () => {
                 </Text>
             </Box>
 
-            <VStack spacing={1} align="stretch">
-                {menuItems.map((item) => (
-                    <Link
-                        key={item.path}
-                        to={item.path}
-                        className={`menu-item ${location.pathname === item.path ? 'active' : ''}`}
-                    >
-                        <Box
-                            display="flex"
-                            alignItems="center"
-                            px={4}
-                            py={3}
-                            color={colorMode === 'light' ? 'gray.700' : 'white'}
-                            _hover={{
-                                bg: colorMode === 'light' ? 'gray.100' : 'whiteAlpha.200'
-                            }}
+            <VStack spacing={0} align="stretch" mt={2}>
+                {menuItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                        <Link
+                            key={item.path}
+                            to={item.path}
+                            style={{ textDecoration: 'none' }}
                         >
-                            <span className="icon">{item.icon}</span>
-                            {!isExpanded && <span className="label">{item.label}</span>}
-                        </Box>
-                    </Link>
-                ))}
+                            <Flex
+                                align="center"
+                                px={4}
+                                py={3}
+                                mx={2}
+                                borderRadius="md"
+                                cursor="pointer"
+                                position="relative"
+                                bg={isActive ? (colorMode === 'light' ? 'blue.50' : 'blue.900') : 'transparent'}
+                                color={isActive 
+                                    ? (colorMode === 'light' ? 'blue.600' : 'blue.200')
+                                    : (colorMode === 'light' ? 'gray.700' : 'white')
+                                }
+                                _hover={{
+                                    bg: colorMode === 'light' 
+                                        ? (isActive ? 'blue.100' : 'gray.100')
+                                        : (isActive ? 'blue.800' : 'whiteAlpha.200'),
+                                    color: isActive 
+                                        ? (colorMode === 'light' ? 'blue.700' : 'blue.100')
+                                        : (colorMode === 'light' ? 'blue.600' : 'blue.200')
+                                }}
+                                transition="all 0.2s ease"
+                            >
+                                {/* Active indicator */}
+                                {isActive && (
+                                    <Box
+                                        position="absolute"
+                                        left={0}
+                                        top="50%"
+                                        transform="translateY(-50%)"
+                                        w="4px"
+                                        h="60%"
+                                        bg={colorMode === 'light' ? 'blue.500' : 'blue.200'}
+                                        borderRadius="full"
+                                    />
+                                )}
+                                
+                                {/* Icon */}
+                                <Box
+                                    fontSize="20px"
+                                    width="24px"
+                                    display="flex"
+                                    alignItems="center"
+                                    justifyContent="center"
+                                >
+                                    {item.icon}
+                                </Box>
+                                
+                                {/* Label */}
+                                {!isExpanded && (
+                                    <Text
+                                        ml={3}
+                                        fontSize="sm"
+                                        fontWeight={isActive ? "600" : "normal"}
+                                    >
+                                        {item.label}
+                                    </Text>
+                                )}
+                            </Flex>
+                        </Link>
+                    );
+                })}
             </VStack>
         </Box>
     );
