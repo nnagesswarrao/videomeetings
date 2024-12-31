@@ -7,8 +7,11 @@ import {
 import Header from '../Header/Header';
 import SideNav from '../SideNav';
 import Footer from './Footer';
+import { useSidebar } from '../../context/SidebarContext';
 
 const Layout = ({ children, user }) => {
+    const { isExpanded } = useSidebar();
+
     return (
         <Flex 
             direction="column" 
@@ -24,17 +27,16 @@ const Layout = ({ children, user }) => {
             />
             
             <Flex flex={1}>
-                {/* Side Navigation */}
                 <SideNav />
                 
-                {/* Main Content Area */}
                 <Box 
                     className="main-content"
-                    ml="280px"  // Match SideNav expanded width 
-                    mt="4rem"   // Account for header height
+                    ml={isExpanded ? "70px" : "280px"}
+                    mt="4rem"
                     flex={1} 
                     p={6} 
                     bg="gray.50"
+                    transition="all 0.3s ease"
                 >
                     <Container maxW="container.xl">
                         {children}
@@ -42,7 +44,6 @@ const Layout = ({ children, user }) => {
                 </Box>
             </Flex>
             
-            {/* Footer */}
             <Footer />
         </Flex>
     );

@@ -21,9 +21,12 @@ import {
     SettingsIcon, 
     ChatIcon,
     QuestionOutlineIcon,
-    ArrowForwardIcon
+    ArrowForwardIcon,
+    HamburgerIcon,
+    ChevronRightIcon
 } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import { useSidebar } from '../../context/SidebarContext';
 
 const lightColors = {
     headerBg: 'white',
@@ -59,6 +62,7 @@ const Header = ({
     const [searchQuery, setSearchQuery] = React.useState('');
     const { colorMode, toggleColorMode } = useColorMode();
     const navigate = useNavigate();
+    const { isExpanded, toggleSidebar } = useSidebar();
 
     // Compute color values based on color mode
     const colors = colorMode === 'light' ? lightColors : darkColors;
@@ -98,12 +102,25 @@ const Header = ({
             boxShadow={colors.headerShadow}
             position="fixed"
             top="0"
-            left="0"
+            left={isExpanded ? "70px" : "280px"}
             right="0"
             zIndex="1000"
+            transition="all 0.3s ease"
         >
             {/* Application Logo and Title */}
             <Flex align="center">
+                <IconButton
+                    icon={isExpanded ? <HamburgerIcon /> : <ChevronRightIcon />}
+                    variant="ghost"
+                    onClick={toggleSidebar}
+                    aria-label="Toggle Navigation"
+                    mr={4}
+                    color={colors.actionColor}
+                    _hover={{
+                        bg: colors.hoverBg,
+                        color: colors.hoverColor
+                    }}
+                />
                 <Text 
                     fontSize="2xl" 
                     fontWeight="bold" 

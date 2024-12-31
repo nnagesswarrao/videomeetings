@@ -1,85 +1,72 @@
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../../App';
-import './Auth.css';
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Heading, 
+  VStack, 
+  Input, 
+  Button, 
+  useColorMode,
+  useToast 
+} from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [error, setError] = useState('');
+  const { colorMode } = useColorMode();
+  const { login } = useAuth();
+  const toast = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-        credentials: 'include'
+      setIsLoading(true);
+      // Add your login logic here
+      login({ name: 'User', email: 'user@example.com' });
+      navigate('/dashboard');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to login. Please try again.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
       });
-
-      const data = await response.json();
-  
-      if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        login(data.user); // Update auth context
-        console.log('Login successful, attempting navigation...');
-        navigate('/dashboard', { replace: true });
-        console.log(response.ok, response.status, "===============", data);
-      } else {
-        setError(data.message || 'Login failed');
-      }
-    } catch (err) {
-      setError('Failed to connect to server');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2>Login to Video Meeting</h2>
-        {error && <div className="error-message">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <button type="submit" className="auth-button">Login</button>
-        </form>
-        <p className="auth-link">
-          Don't have an account? <Link to="/register">Sign up</Link>
-        </p>
-      </div>
-    </div>
+    <Box 
+      minH="100vh" 
+      display="flex" 
+      alignItems="center" 
+      justifyContent="center"
+      bg={colorMode === 'light' ? 'gray.50' : 'gray.900'}
+    >
+      <VStack 
+        spacing={6} 
+        p={8} 
+        bg={colorMode === 'light' ? 'white' : 'gray.800'}
+        borderRadius="lg"
+        boxShadow="lg"
+        width="100%"
+        maxW="400px"
+      >
+        <Heading>Login</Heading>
+        <Input placeholder="Username" />
+        <Input type="password" placeholder="Password" />
+        <Button 
+          colorScheme="blue" 
+          width="100%" 
+          onClick={handleLogin}
+          isLoading={isLoading}
+        >
+          Login
+        </Button>
+      </VStack>
+    </Box>
   );
 };
 

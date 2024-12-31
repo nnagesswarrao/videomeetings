@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   ChakraProvider,
   extendTheme,
@@ -9,9 +9,11 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
-  Navigate,
-  useNavigate
+  Navigate
 } from 'react-router-dom';
+import Layout from './components/Layout/Layout';
+import { SidebarProvider } from './context/SidebarContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Import components with full path to ensure correct import
 import SideNav from './components/SideNav.jsx';
@@ -35,6 +37,8 @@ import CreateMeeting from './components/CreateMeeting.jsx';
 import JoinMeeting from './components/JoinMeeting.jsx';
 import CreateParticipent from './components/CreateParticepent/CreateParticipent.jsx';
 // Custom theme configuration
+
+// Custom theme configuration
 const theme = extendTheme({
   config: {
     initialColorMode: 'light',
@@ -50,190 +54,67 @@ const theme = extendTheme({
   }
 });
 
-// Authentication Context
-const AuthContext = React.createContext(null);
-
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const auth = React.useContext(AuthContext);
+  const { isAuthenticated } = useAuth() || { isAuthenticated: false };
 
-  if (!auth.isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      // Redirect after component mounts
+      window.location.href = '/login';
+    }
+  }, [isAuthenticated]);
+
+  // Show loading or null while checking auth status
+  if (!isAuthenticated) {
+    return null;
   }
 
   return children;
 };
 
 function App() {
-  const [user, setUser] = useState(() => {
-    // Check if user is stored in localStorage
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
-
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
-
-  const authContext = {
-    user,
-    isAuthenticated: !!user,
-    login,
-    logout
-  };
-
   return (
-    <AuthContext.Provider value={authContext}>
-      <ChakraProvider theme={theme}>
-        <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-        <Router>
-          <Box display="flex" flexDirection="column" minHeight="100vh">
-            {/* Header */}
-            {authContext.isAuthenticated && (
-              <Header
-                title="Teams Meeting"
-                user={user}
-                onLogout={logout}
+    <ChakraProvider theme={theme}>
+      <ColorModeScript initialColorMode={theme.config.initialColorMode} />
+      <AuthProvider>
+        <SidebarProvider>
+          <Router>
+            <Routes>
+              {/* Public Routes - Outside Layout */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Signup />} />
+
+              {/* Protected Routes - Inside Layout */}
+              <Route
+                path="/*"
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <Routes>
+                        <Route path="/" element={<HomePage />} />
+                        <Route path="/dashboard" element={<HomePage />} />
+                        <Route path="/chat" element={<Chat />} />
+                        <Route path="/calendar" element={<Calendar />} />
+                        <Route path="/calls" element={<Calls />} />
+                        <Route path="/create-meeting" element={<CreateMeeting />} />
+                        <Route path="/join-meeting" element={<JoinMeeting />} />
+                        <Route path="/meetings" element={<MeetingsPage />} />
+                        <Route path="/meeting/:roomId" element={<MeetingRoom />} />
+                        <Route path="/create-participent" element={<CreateParticipent />} />
+                        <Route path="/profile" element={<ProfilePage />} />
+                        <Route path="*" element={<NotFoundPage />} />
+                      </Routes>
+                    </Layout>
+                  </ProtectedRoute>
+                }
               />
-            )}
-
-            {/* Main Content Area */}
-            <Box display="flex" flex={1}>
-              {/* Side Navigation */}
-              {authContext.isAuthenticated && <SideNav />}
-
-              {/* Routes */}
-              <Box
-                className="main-content"
-                ml={authContext.isAuthenticated ? "280px" : "0"}
-                mt="4rem"
-                flex={1}
-                p={6}
-                bg="gray.50"
-              >
-                <Routes>
-                  {/* Public Routes */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Signup />} />
-
-                  {/* Protected Routes */}
-                  <Route
-                    path="/"
-                    element={(
-                      <ProtectedRoute>
-                        <HomePage />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/dashboard"
-                    element={(
-                      <ProtectedRoute>
-                        <HomePage />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/chat"
-                    element={(
-                      <ProtectedRoute>
-                        <Chat />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/calendar"
-                    element={(
-                      <ProtectedRoute>
-                        <Calendar />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/calls"
-                    element={(
-                      <ProtectedRoute>
-                        <Calls />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/create-meeting"
-                    element={(
-                      <ProtectedRoute>
-                        <CreateMeeting />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/join-meeting"
-                    element={(
-                      <ProtectedRoute>
-                        <JoinMeeting />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/meetings"
-                    element={(
-                      <ProtectedRoute>
-                        <MeetingsPage />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/meeting/:roomId"
-                    element={(
-                      <ProtectedRoute>
-                        <MeetingRoom />
-                      </ProtectedRoute>
-                    )}
-                  />
-
-                  <Route
-                    path="/create-participent"
-                    element={(
-                      <ProtectedRoute>
-                        <CreateParticipent />
-                      </ProtectedRoute>
-                    )}
-                  />
-                  <Route
-                    path="/profile"
-                    element={(
-                      <ProtectedRoute>
-                        <ProfilePage />
-                      </ProtectedRoute>
-                    )}
-                  />
-
-                  {/* 404 Route */}
-                  <Route
-                    path="*"
-                    element={(
-                      <ProtectedRoute>
-                        <NotFoundPage />
-                      </ProtectedRoute>
-                    )}
-                  />
-                </Routes>
-              </Box>
-            </Box>
-
-            {/* Footer */}
-            {authContext.isAuthenticated && <Footer />}
-          </Box>
-        </Router>
-      </ChakraProvider>
-    </AuthContext.Provider>
+            </Routes>
+          </Router>
+        </SidebarProvider>
+      </AuthProvider>
+    </ChakraProvider>
   );
 }
 
-export { AuthContext };
 export default App;
