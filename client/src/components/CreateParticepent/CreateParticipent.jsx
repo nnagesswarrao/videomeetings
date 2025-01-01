@@ -282,7 +282,7 @@ const CreateParticipant = () => {
                                     <FormLabel>Email</FormLabel>
                                     <Input
                                         name="email"
-                                        type="email"
+                        type="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
                                         placeholder="Enter email"
@@ -293,7 +293,7 @@ const CreateParticipant = () => {
                                     <FormLabel>Date of Birth</FormLabel>
                                     <Input
                                         name="dateOfBirth"
-                                        type="date"
+                        type="date"
                                         value={formData.dateOfBirth}
                                         onChange={handleInputChange}
                                     />
@@ -310,21 +310,21 @@ const CreateParticipant = () => {
                                         {Object.values(GROUP_TYPES).map(group => (
                                             <option key={group.id} value={group.id}>
                                                 {group.label}
-                                            </option>
-                                        ))}
+                            </option>
+                        ))}
                                     </Select>
                                 </FormControl>
 
                                 <Button
-                                    type="submit"
+                    type="submit"
                                     colorScheme="blue"
                                     width="full"
                                     mt={4}
-                                >
+                >
                                     {isEditing ? 'Update' : 'Create'}
                                 </Button>
                             </VStack>
-                        </form>
+            </form>
                     </DrawerBody>
                 </DrawerContent>
             </Drawer>

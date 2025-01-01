@@ -677,11 +677,11 @@ const MeetingRoom = () => {
         });
       });
 
-      peer.on('stream', stream => {
+      peer.on('stream', peerStream => {
         // Update peer's stream in peersRef
         const peerToUpdate = peersRef.current.find(p => p.peerId === userToSignal);
         if (peerToUpdate) {
-          peerToUpdate.peer.streams = [stream];
+          peerToUpdate.peer.streams = [peerStream];
           // Force update of peers state to trigger re-render
           setPeers([...peersRef.current]);
         }
@@ -718,11 +718,11 @@ const MeetingRoom = () => {
         socketRef.current?.emit('returning-signal', { signal, callerId });
       });
 
-      peer.on('stream', stream => {
+      peer.on('stream', peerStream => {
         // Update peer's stream in peersRef
         const peerToUpdate = peersRef.current.find(p => p.peerId === callerId);
         if (peerToUpdate) {
-          peerToUpdate.peer.streams = [stream];
+          peerToUpdate.peer.streams = [peerStream];
           // Force update of peers state to trigger re-render
           setPeers([...peersRef.current]);
         }
@@ -745,137 +745,138 @@ const MeetingRoom = () => {
   // Setup WebRTC and Socket connection
   useEffect(() => {
     if (!meetingDetails) return;
-    console.log("=======STEp 1=====")
+    
     let localStream = null;
+    socketRef.current = io('http://localhost:5001');
 
     const setupSocketListeners = (stream) => {
-      socketRef.current = io('http://localhost:5001');
-      console.log("=======STEp 2=====")
-      // Join room after getting media stream
-      socketRef.current.emit('join-room', {
-        roomId,
-        userName,
-        peerId: socketRef.current.id
-      });
-      
-      // Listen for existing users in the room
-      socketRef.current.on('all-users', users => {
-        console.log('Received all users:', users);
-        const peers = [];
-        users.forEach(user => {
-          console.log(`Creating peer for user: ${user.userName}`);
-          const peer = createPeer(user.socketId, socketRef.current.id, stream);
-          if (peer) {
-            peersRef.current.push({
-              peerId: user.socketId,
-              peer,
-              userName: user.userName
-            });
-            peers.push({
-              peerId: user.socketId,
-              peer,
-              userName: user.userName
-            });
-          }
+        // Join room
+        socketRef.current.emit('join-room', {
+            roomId,
+            userName,
+            peerId: socketRef.current.id
         });
-        console.log('Setting peers:', peers);
-        setPeers(peers);
-      });
+        
+        // Listen for existing users in the room
+        socketRef.current.on('all-users', users => {
+            console.log('Received all users:', users);
+            const peers = [];
+            
+            users.forEach(user => {
+                console.log(`Creating peer for user: ${user.userName}`);
+                const peer = createPeer(user.socketId, socketRef.current.id, stream);
+                if (peer) {
+                    peersRef.current.push({
+                        peerId: user.socketId,
+                        peer,
+                        userName: user.userName
+                    });
+                    peers.push({
+                        peerId: user.socketId,
+                        peer,
+                        userName: user.userName
+                    });
+                }
+            });
+            
+            setPeers(peers);
+        });
 
-      // Listen for new users joining
-      socketRef.current.on('user-joined', payload => {
-        console.log('New user joined:', payload);
-        const peer = addPeer(payload.signal, payload.callerId, stream, payload.userName);
-        if (peer) {
-          const peerObj = {
-            peerId: payload.callerId,
-            peer,
-            userName: payload.userName
-          };
-          peersRef.current.push(peerObj);
-          setPeers(users => [...users, peerObj]);
-          console.log('Updated peers after user joined:', peersRef.current);
-        }
-      });
+        // Listen for new users joining
+        socketRef.current.on('user-joined', payload => {
+            console.log('New user joined:', payload);
+            const peer = addPeer(payload.signal, payload.callerId, stream, payload.userName);
+            if (peer) {
+                const peerObj = {
+                    peerId: payload.callerId,
+                    peer,
+                    userName: payload.userName
+                };
+                peersRef.current.push(peerObj);
+                setPeers(prevPeers => [...prevPeers, peerObj]);
+            }
+        });
 
-      // Handle returned signals
-      socketRef.current.on('receiving-returned-signal', payload => {
-        console.log('Received returned signal from:', payload.id);
-        const item = peersRef.current.find(p => p.peerId === payload.id);
-        if (item && item.peer) {
-          item.peer.signal(payload.signal);
-        }
-      });
+        // Handle returned signals
+        socketRef.current.on('receiving-returned-signal', payload => {
+            console.log('Received returned signal from:', payload.id);
+            const item = peersRef.current.find(p => p.peerId === payload.id);
+            if (item && item.peer) {
+                item.peer.signal(payload.signal);
+            }
+        });
 
-      // Handle user disconnection
-      socketRef.current.on('user-left', userId => {
-        console.log('User left:', userId);
-        const peerToRemove = peersRef.current.find(p => p.peerId === userId);
-        if (peerToRemove && peerToRemove.peer) {
-          peerToRemove.peer.destroy();
-        }
-        const remainingPeers = peersRef.current.filter(p => p.peerId !== userId);
-        peersRef.current = remainingPeers;
-        setPeers(remainingPeers);
-      });
+        // Handle user disconnection
+        socketRef.current.on('user-left', payload => {
+            console.log('User left:', payload);
+            const peerToRemove = peersRef.current.find(p => p.peerId === payload.socketId);
+            if (peerToRemove && peerToRemove.peer) {
+                peerToRemove.peer.destroy();
+            }
+            const remainingPeers = peersRef.current.filter(p => p.peerId !== payload.socketId);
+            peersRef.current = remainingPeers;
+            setPeers(remainingPeers);
+
+            toast({
+                title: "User Left",
+                description: `${payload.userName} has left the meeting`,
+                status: "info",
+                duration: 3000,
+                isClosable: true,
+            });
+        });
     };
 
-    setupSocketListeners({});
+    // setupSocketListeners({})
 
     const setupMediaStream = async () => {
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            const audioDevices = devices.filter(device => device.kind === 'audioinput');
 
-        const constraints = {
-          video: videoDevices.length > 0 ? { deviceId: videoDevices[0].deviceId } : false,
-          audio: audioDevices.length > 0 ? { deviceId: audioDevices[0].deviceId } : false
-        };
+            const constraints = {
+                video: videoDevices.length > 0 ? { deviceId: videoDevices[0].deviceId } : false,
+                audio: audioDevices.length > 0 ? { deviceId: audioDevices[0].deviceId } : false
+            };
 
-        console.log('Getting user media with constraints:', constraints);
-        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log('Got media stream:', mediaStream);
+            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            localStream = mediaStream;
+            setStream(mediaStream);
 
-        localStream = mediaStream;
-        setStream(mediaStream);
+            if (userVideo.current) {
+                userVideo.current.srcObject = mediaStream;
+            }
 
-        if (userVideo.current) {
-          userVideo.current.srcObject = mediaStream;
+            setupAudioLevelDetection(mediaStream);
+            setupSocketListeners(mediaStream);
+        } catch (error) {
+            console.error('Media stream setup error:', error);
+            toast({
+                title: "Media Device Error",
+                description: error.message || "Could not access camera or microphone",
+                status: "error",
+                duration: 5000,
+                isClosable: true
+            });
         }
-
-        setupAudioLevelDetection(mediaStream);
-        // setupSocketListeners(mediaStream); // mee comment
-
-      } catch (error) {
-        console.error('Media stream setup error:', error);
-        toast({
-          title: "Media Device Error",
-          description: error.message || "Could not access camera or microphone",
-          status: "error",
-          duration: 5000,
-          isClosable: true
-        });
-      }
     };
 
     setupMediaStream();
 
-
-    // Cleanup function
     return () => {
-      console.log('Cleaning up connections...');
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      peersRef.current.forEach(peer => {
-        if (peer.peer) {
-          peer.peer.destroy();
+        console.log('Cleaning up connections...');
+        if (socketRef.current) {
+            socketRef.current.disconnect();
         }
-      });
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+        peersRef.current.forEach(peer => {
+            if (peer.peer) {
+                peer.peer.destroy();
+            }
+        });
     };
   }, [meetingDetails, roomId, userName, toast]);
 
