@@ -662,92 +662,158 @@ const MeetingRoom = () => {
   // Create peer connection
   const createPeer = useCallback((userToSignal, callerId, stream) => {
     try {
-      const peer = new Peer({
-        initiator: true,
-        trickle: false,
-        stream
-      });
-
-      peer.on('signal', signal => {
-        socketRef.current?.emit('sending-signal', {
-          userToSignal,
-          callerId,
-          signal,
-          userName
+        const peer = new Peer({
+            initiator: true,
+            trickle: false,
+            stream
         });
-      });
 
-      peer.on('stream', peerStream => {
-        // Update peer's stream in peersRef
-        const peerToUpdate = peersRef.current.find(p => p.peerId === userToSignal);
-        if (peerToUpdate) {
-          peerToUpdate.peer.streams = [peerStream];
-          // Force update of peers state to trigger re-render
-          setPeers([...peersRef.current]);
-        }
-      });
+        let isDestroyed = false;
 
-      peer.on('error', error => {
-        console.error('Peer connection error:', error);
-        toast({
-          title: "Connection Error",
-          description: "Failed to connect to peer",
-          status: "error",
-          duration: 5000,
-          isClosable: true
+        peer.on('signal', signal => {
+            if (!isDestroyed && socketRef.current) {
+                socketRef.current.emit('sending-signal', {
+                    userToSignal,
+                    callerId,
+                    signal,
+                    userName
+                });
+            }
         });
-      });
 
-      return peer;
+        peer.on('stream', peerStream => {
+            if (!isDestroyed) {
+                const peerToUpdate = peersRef.current.find(p => p.peerId === userToSignal);
+                if (peerToUpdate) {
+                    peerToUpdate.peer.streams = [peerStream];
+                    setPeers([...peersRef.current]);
+                }
+            }
+        });
+
+        peer.on('close', () => {
+            isDestroyed = true;
+            const remainingPeers = peersRef.current.filter(p => p.peerId !== userToSignal);
+            peersRef.current = remainingPeers;
+            setPeers(remainingPeers);
+        });
+
+        peer.on('error', error => {
+            console.error('Peer connection error:', error);
+            if (!isDestroyed) {
+                toast({
+                    title: "Connection Error",
+                    description: "Failed to connect to peer",
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true
+                });
+            }
+        });
+
+        return peer;
     } catch (error) {
-      console.error('Error creating peer:', error);
-      return null;
+        console.error('Error creating peer:', error);
+        return null;
     }
-  }, [userName, toast]);
+}, [userName, toast]);
 
-  // Add peer connection
-  const addPeer = useCallback((incomingSignal, callerId, stream, peerUserName) => {
+const addPeer = useCallback((incomingSignal, callerId, stream, peerUserName) => {
     try {
-      const peer = new Peer({
-        initiator: false,
-        trickle: false,
-        stream
-      });
+        const peer = new Peer({
+            initiator: false,
+            trickle: false,
+            stream
+        });
 
-      peer.on('signal', signal => {
-        socketRef.current?.emit('returning-signal', { signal, callerId });
-      });
+        let isDestroyed = false;
 
-      peer.on('stream', peerStream => {
-        // Update peer's stream in peersRef
-        const peerToUpdate = peersRef.current.find(p => p.peerId === callerId);
-        if (peerToUpdate) {
-          peerToUpdate.peer.streams = [peerStream];
-          // Force update of peers state to trigger re-render
-          setPeers([...peersRef.current]);
+        peer.on('signal', signal => {
+            if (!isDestroyed && socketRef.current) {
+                socketRef.current.emit('returning-signal', { signal, callerId });
+            }
+        });
+
+        peer.on('stream', peerStream => {
+            if (!isDestroyed) {
+                const peerToUpdate = peersRef.current.find(p => p.peerId === callerId);
+                if (peerToUpdate) {
+                    peerToUpdate.peer.streams = [peerStream];
+                    setPeers([...peersRef.current]);
+                }
+            }
+        });
+
+        peer.on('close', () => {
+            isDestroyed = true;
+            const remainingPeers = peersRef.current.filter(p => p.peerId !== callerId);
+            peersRef.current = remainingPeers;
+            setPeers(remainingPeers);
+        });
+
+        peer.on('error', error => {
+            console.error('Peer connection error:', error);
+        });
+
+        if (!isDestroyed) {
+            peer.signal(incomingSignal);
         }
-      });
 
-      peer.on('error', error => {
-        console.error('Peer connection error:', error);
-      });
-
-      // Signal the peer
-      peer.signal(incomingSignal);
-
-      return peer;
+        return peer;
     } catch (error) {
-      console.error('Error adding peer:', error);
-      return null;
+        console.error('Error adding peer:', error);
+        return null;
     }
-  }, []);
+}, []);
 
   // Setup WebRTC and Socket connection
   useEffect(() => {
     if (!meetingDetails) return;
     
     let localStream = null;
+    let isCleaningUp = false;
     socketRef.current = io('http://localhost:5001');
+
+    const cleanupConnections = () => {
+        if (isCleaningUp) return;
+        isCleaningUp = true;
+
+        console.log('Cleaning up connections...');
+        
+        // Clean up peers first
+        peersRef.current.forEach(peer => {
+            if (peer.peer && !peer.peer.destroyed) {
+                try {
+                    peer.peer.destroy();
+                } catch (error) {
+                    console.error('Error destroying peer:', error);
+                }
+            }
+        });
+        peersRef.current = [];
+        setPeers([]);
+
+        // Clean up media tracks
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                try {
+                    track.stop();
+                } catch (error) {
+                    console.error('Error stopping track:', error);
+                }
+            });
+        }
+
+        // Clean up socket
+        if (socketRef.current) {
+            try {
+                socketRef.current.emit('leave-room', { roomId });
+                socketRef.current.disconnect();
+            } catch (error) {
+                console.error('Error disconnecting socket:', error);
+            }
+        }
+    };
 
     const setupSocketListeners = (stream) => {
         // Join room
@@ -763,19 +829,23 @@ const MeetingRoom = () => {
             const peers = [];
             
             users.forEach(user => {
-                console.log(`Creating peer for user: ${user.userName}`);
-                const peer = createPeer(user.socketId, socketRef.current.id, stream);
-                if (peer) {
-                    peersRef.current.push({
-                        peerId: user.socketId,
-                        peer,
-                        userName: user.userName
-                    });
-                    peers.push({
-                        peerId: user.socketId,
-                        peer,
-                        userName: user.userName
-                    });
+                try {
+                    console.log(`Creating peer for user: ${user.userName}`);
+                    const peer = createPeer(user.socketId, socketRef.current.id, stream);
+                    if (peer && !peer.destroyed) {
+                        peersRef.current.push({
+                            peerId: user.socketId,
+                            peer,
+                            userName: user.userName
+                        });
+                        peers.push({
+                            peerId: user.socketId,
+                            peer,
+                            userName: user.userName
+                        });
+                    }
+                } catch (error) {
+                    console.error(`Error creating peer for user ${user.userName}:`, error);
                 }
             });
             
@@ -784,46 +854,68 @@ const MeetingRoom = () => {
 
         // Listen for new users joining
         socketRef.current.on('user-joined', payload => {
-            console.log('New user joined:', payload);
-            const peer = addPeer(payload.signal, payload.callerId, stream, payload.userName);
-            if (peer) {
-                const peerObj = {
-                    peerId: payload.callerId,
-                    peer,
-                    userName: payload.userName
-                };
-                peersRef.current.push(peerObj);
-                setPeers(prevPeers => [...prevPeers, peerObj]);
+            try {
+                console.log('New user joined:', payload);
+                const existingPeer = peersRef.current.find(p => p.peerId === payload.callerId);
+                if (!existingPeer) {
+                    const peer = addPeer(payload.signal, payload.callerId, stream, payload.userName);
+                    if (peer && !peer.destroyed) {
+                        const peerObj = {
+                            peerId: payload.callerId,
+                            peer,
+                            userName: payload.userName
+                        };
+                        peersRef.current.push(peerObj);
+                        setPeers(prevPeers => [...prevPeers, peerObj]);
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling new user:', error);
             }
         });
 
         // Handle returned signals
         socketRef.current.on('receiving-returned-signal', payload => {
-            console.log('Received returned signal from:', payload.id);
-            const item = peersRef.current.find(p => p.peerId === payload.id);
-            if (item && item.peer) {
-                item.peer.signal(payload.signal);
+            try {
+                console.log('Received returned signal from:', payload.id);
+                const item = peersRef.current.find(p => p.peerId === payload.id);
+                if (item && item.peer && !item.peer.destroyed) {
+                    item.peer.signal(payload.signal);
+                }
+            } catch (error) {
+                console.error('Error handling returned signal:', error);
+                const item = peersRef.current.find(p => p.peerId === payload.id);
+                if (item && item.peer && !item.peer.destroyed) {
+                    item.peer.destroy();
+                }
+                const remainingPeers = peersRef.current.filter(p => p.peerId !== payload.id);
+                peersRef.current = remainingPeers;
+                setPeers(remainingPeers);
             }
         });
 
         // Handle user disconnection
         socketRef.current.on('user-left', payload => {
-            console.log('User left:', payload);
-            const peerToRemove = peersRef.current.find(p => p.peerId === payload.socketId);
-            if (peerToRemove && peerToRemove.peer) {
-                peerToRemove.peer.destroy();
-            }
-            const remainingPeers = peersRef.current.filter(p => p.peerId !== payload.socketId);
-            peersRef.current = remainingPeers;
-            setPeers(remainingPeers);
+            try {
+                console.log('User left:', payload);
+                const peerToRemove = peersRef.current.find(p => p.peerId === payload.socketId);
+                if (peerToRemove && peerToRemove.peer && !peerToRemove.peer.destroyed) {
+                    peerToRemove.peer.destroy();
+                }
+                const remainingPeers = peersRef.current.filter(p => p.peerId !== payload.socketId);
+                peersRef.current = remainingPeers;
+                setPeers(remainingPeers);
 
-            toast({
-                title: "User Left",
-                description: `${payload.userName} has left the meeting`,
-                status: "info",
-                duration: 3000,
-                isClosable: true,
-            });
+                toast({
+                    title: "User Left",
+                    description: `${payload.userName} has left the meeting`,
+                    status: "info",
+                    duration: 3000,
+                    isClosable: true
+                });
+            } catch (error) {
+                console.error('Error handling user left:', error);
+            }
         });
     };
 
@@ -864,20 +956,7 @@ const MeetingRoom = () => {
 
     setupMediaStream();
 
-    return () => {
-        console.log('Cleaning up connections...');
-        if (socketRef.current) {
-            socketRef.current.disconnect();
-        }
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-        }
-        peersRef.current.forEach(peer => {
-            if (peer.peer) {
-                peer.peer.destroy();
-            }
-        });
-    };
+    return cleanupConnections;
   }, [meetingDetails, roomId, userName, toast]);
 
   // Screen Sharing Implementation
@@ -1130,11 +1209,24 @@ const MeetingRoom = () => {
   };
 
   const leaveMeeting = () => {
+    // Cleanup all peer connections first
+    peersRef.current.forEach(peer => {
+        if (peer.peer && !peer.peer.destroyed) {
+            peer.peer.destroy();
+        }
+    });
+    peersRef.current = [];
+    setPeers([]);
+
     // Stop all media tracks
-    stream?.getTracks().forEach(track => track.stop());
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
 
     // Disconnect socket
-    socketRef.current?.disconnect();
+    if (socketRef.current) {
+        socketRef.current.disconnect();
+    }
 
     // Navigate back to meetings page
     navigate('/meetings');

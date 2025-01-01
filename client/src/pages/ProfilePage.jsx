@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import {
-    Box,
+import { 
+    Box, 
     Container,
-    VStack,
+    VStack, 
     HStack,
-    Heading,
+    Heading, 
     Text,
     Button,
     Avatar,
-    FormControl,
-    FormLabel,
-    Input,
+    FormControl, 
+    FormLabel, 
+    Input, 
     Divider,
     useColorMode,
     Card,
@@ -174,8 +174,8 @@ const ProfilePage = () => {
                         left="50%"
                         transform="translateX(-50%)"
                     >
-                        <Avatar
-                            size="2xl"
+                    <Avatar 
+                        size="2xl" 
                             name={formData.name}
                             src={formData.avatar}
                             border="4px solid"
@@ -227,63 +227,63 @@ const ProfilePage = () => {
 
                                     {/* Profile Details */}
                                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} w="full">
-                                        <FormControl>
+                    <FormControl>
                                             <FormLabel>
                                                 <HStack>
                                                     <Icon as={FaUser} />
                                                     <Text>Full Name</Text>
                                                 </HStack>
                                             </FormLabel>
-                                            <Input
+                        <Input 
                                                 name="name"
                                                 value={formData.name}
                                                 onChange={handleInputChange}
                                                 isReadOnly={!isEditing}
                                                 bg={!isEditing && (colorMode === 'light' ? 'gray.50' : 'gray.600')}
-                                            />
-                                        </FormControl>
+                        />
+                    </FormControl>
 
-                                        <FormControl>
+                    <FormControl>
                                             <FormLabel>
                                                 <HStack>
                                                     <Icon as={FaEnvelope} />
                                                     <Text>Email</Text>
                                                 </HStack>
                                             </FormLabel>
-                                            <Input
+                        <Input 
                                                 name="email"
                                                 value={formData.email}
                                                 onChange={handleInputChange}
                                                 isReadOnly={!isEditing}
                                                 bg={!isEditing && (colorMode === 'light' ? 'gray.50' : 'gray.600')}
-                                            />
-                                        </FormControl>
+                        />
+                    </FormControl>
 
-                                        <FormControl>
+                    <FormControl>
                                             <FormLabel>
                                                 <HStack>
                                                     <Icon as={FaPhone} />
                                                     <Text>Phone</Text>
                                                 </HStack>
                                             </FormLabel>
-                                            <Input
+                        <Input 
                                                 name="phone"
                                                 value={formData.phone}
                                                 onChange={handleInputChange}
                                                 isReadOnly={!isEditing}
                                                 bg={!isEditing && (colorMode === 'light' ? 'gray.50' : 'gray.600')}
-                                            />
-                                        </FormControl>
+                        />
+                    </FormControl>
 
-                                        <FormControl>
+                    <FormControl>
                                             <FormLabel>
                                                 <HStack>
                                                     <Icon as={FaBuilding} />
                                                     <Text>Department</Text>
                                                 </HStack>
                                             </FormLabel>
-                                            <Input
-                                                name="department"
+                        <Input 
+                            name="department"
                                                 value={formData.department}
                                                 onChange={handleInputChange}
                                                 isReadOnly={!isEditing}
@@ -336,25 +336,25 @@ const ProfilePage = () => {
                                             name="newPassword"
                                             value={passwordData.newPassword}
                                             onChange={handlePasswordChange}
-                                        />
-                                    </FormControl>
+                        />
+                    </FormControl>
 
-                                    <FormControl>
+                    <FormControl>
                                         <FormLabel>Confirm New Password</FormLabel>
-                                        <Input
+                        <Input 
                                             type="password"
                                             name="confirmPassword"
                                             value={passwordData.confirmPassword}
                                             onChange={handlePasswordChange}
-                                        />
-                                    </FormControl>
+                        />
+                    </FormControl>
 
-                                    <Button
-                                        colorScheme="blue"
+                    <Button 
+                        colorScheme="blue" 
                                         onClick={handlePasswordSubmit}
-                                    >
+                    >
                                         Update Password
-                                    </Button>
+                    </Button>
 
                                     <Divider my={4} />
 
@@ -366,7 +366,7 @@ const ProfilePage = () => {
                                             onChange={() => handleSettingChange('twoFactorAuth')}
                                         />
                                     </HStack>
-                                </VStack>
+                </VStack>
                             </TabPanel>
 
                             {/* Preferences Tab */}
@@ -404,7 +404,7 @@ const ProfilePage = () => {
                                             <option value="French">French</option>
                                         </Select>
                                     </FormControl>
-                                </VStack>
+            </VStack>
                             </TabPanel>
                         </TabPanels>
                     </Tabs>

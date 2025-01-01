@@ -214,13 +214,13 @@ const CreateMeeting = ({ isDrawer = false, onSuccess, onCancel }) => {
                 if (onSuccess) {
                     onSuccess(data);
                 } else {
-                    toast({
-                        title: "Meeting Created",
-                        description: "Your meeting has been scheduled",
-                        status: "success",
-                        duration: 5000,
-                        isClosable: true,
-                    });
+                toast({
+                    title: "Meeting Created",
+                    description: "Your meeting has been scheduled",
+                    status: "success",
+                    duration: 5000,
+                    isClosable: true,
+                });
                     navigate(`/dashboard`);
                 }
             } else {
@@ -246,44 +246,44 @@ const CreateMeeting = ({ isDrawer = false, onSuccess, onCancel }) => {
 
     return (
         <Container maxW={isDrawer ? "full" : "container.xl"} p={isDrawer ? 0 : 4}>
-            <form onSubmit={handleSubmit}>
-                <VStack spacing={6} align="stretch">
+                        <form onSubmit={handleSubmit}>
+                                    <VStack spacing={6} align="stretch">
                     {!isDrawer && (
-                        <Flex justify="space-between" mb={4}>
-                            <Text fontSize="xl" fontWeight="bold">New meeting</Text>
-                        </Flex>
+                                        <Flex justify="space-between" mb={4}>
+                                            <Text fontSize="xl" fontWeight="bold">New meeting</Text>
+                                        </Flex>
                     )}
 
-                    {/* Title */}
-                    <Box borderBottom="1px" borderColor="gray.200" pb={4}>
-                        <HStack spacing={4}>
-                            <IconButton
-                                aria-label="Title"
-                                icon={<MdTitle />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Input
-                                name="title"
-                                placeholder="Add title"
-                                value={formData.title}
-                                onChange={handleInputChange}
-                                variant="unstyled"
-                                fontSize="lg"
-                            />
-                        </HStack>
-                    </Box>
+                                        {/* Title */}
+                                        <Box borderBottom="1px" borderColor="gray.200" pb={4}>
+                                            <HStack spacing={4}>
+                                                <IconButton
+                                                    aria-label="Title"
+                                                    icon={<MdTitle />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Input
+                                                    name="title"
+                                                    placeholder="Add title"
+                                                    value={formData.title}
+                                                    onChange={handleInputChange}
+                                                    variant="unstyled"
+                                                    fontSize="lg"
+                                                />
+                                            </HStack>
+                                        </Box>
 
-                    {/* Attendees */}
-                    <Box>
-                        <HStack align="start" spacing={4}>
-                            <IconButton
-                                aria-label="Attendees"
-                                icon={<MdGroup />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <VStack align="stretch" width="full" spacing={3}>
+                                        {/* Attendees */}
+                                        <Box>
+                                            <HStack align="start" spacing={4}>
+                                                <IconButton
+                                                    aria-label="Attendees"
+                                                    icon={<MdGroup />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <VStack align="stretch" width="full" spacing={3}>
                                 <Box>
                                     <Text mb={2} fontWeight="medium">Attendees</Text>
                                     <AttendeeSearchInput />
@@ -304,145 +304,145 @@ const CreateMeeting = ({ isDrawer = false, onSuccess, onCancel }) => {
                                         ))}
                                     </Flex>
                                 </Box>
-                            </VStack>
-                        </HStack>
-                    </Box>
+                                                </VStack>
+                                            </HStack>
+                                        </Box>
 
-                    {/* Date/Time */}
-                    <Box>
-                        <HStack align="center" spacing={4}>
-                            <IconButton
-                                aria-label="Time"
-                                icon={<MdAccessTime />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Flex gap={4} align="center" flex={1}>
-                                <Box flex={1}>
-                                    <DatePicker
+                                        {/* Date/Time */}
+                                        <Box>
+                                            <HStack align="center" spacing={4}>
+                                                <IconButton
+                                                    aria-label="Time"
+                                                    icon={<MdAccessTime />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Flex gap={4} align="center" flex={1}>
+                                                    <Box flex={1}>
+                                                        <DatePicker
                                         selected={parseDateTime(formData.start_time)}
                                         onChange={date => setFormData(prev => ({ 
                                             ...prev, 
                                             start_time: formatDateTime(date),
                                             end_time: formatDateTime(new Date(date.getTime() + 30 * 60000))
                                         }))}
-                                        showTimeSelect
+                                                            showTimeSelect
                                         dateFormat="yyyy-MM-dd HH:mm"
                                         timeFormat="HH:mm"
                                         timeIntervals={15}
-                                        customInput={
-                                            <Input sx={datePickerStyles.input} />
-                                        }
-                                    />
-                                </Box>
-                                <Text>to</Text>
-                                <Box flex={1}>
-                                    <DatePicker
+                                                            customInput={
+                                                                <Input sx={datePickerStyles.input} />
+                                                            }
+                                                        />
+                                                    </Box>
+                                                    <Text>to</Text>
+                                                    <Box flex={1}>
+                                                        <DatePicker
                                         selected={parseDateTime(formData.end_time)}
                                         onChange={date => setFormData(prev => ({ 
                                             ...prev, 
                                             end_time: formatDateTime(date)
                                         }))}
-                                        showTimeSelect
+                                                            showTimeSelect
                                         dateFormat="yyyy-MM-dd HH:mm"
                                         timeFormat="HH:mm"
                                         timeIntervals={15}
                                         minDate={parseDateTime(formData.start_time)}
                                         minTime={parseDateTime(formData.start_time)}
                                         maxTime={new Date(new Date().setHours(23, 59))}
-                                        customInput={
-                                            <Input sx={datePickerStyles.input} />
-                                        }
-                                    />
-                                </Box>
-                            </Flex>
-                        </HStack>
-                    </Box>
+                                                            customInput={
+                                                                <Input sx={datePickerStyles.input} />
+                                                            }
+                                                        />
+                                                    </Box>
+                                                </Flex>
+                                            </HStack>
+                                        </Box>
 
-                    {/* Recurrence */}
-                    <Box>
-                        <HStack spacing={4}>
-                            <IconButton
-                                aria-label="Recurrence"
-                                icon={<MdRepeat />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Select
-                                name="recurrence"
-                                value={formData.recurrence}
-                                onChange={handleInputChange}
-                                width="200px"
-                            >
-                                <option value="none">Does not repeat</option>
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </Select>
-                        </HStack>
-                    </Box>
+                                        {/* Recurrence */}
+                                        <Box>
+                                            <HStack spacing={4}>
+                                                <IconButton
+                                                    aria-label="Recurrence"
+                                                    icon={<MdRepeat />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Select
+                                                    name="recurrence"
+                                                    value={formData.recurrence}
+                                                    onChange={handleInputChange}
+                                                    width="200px"
+                                                >
+                                                    <option value="none">Does not repeat</option>
+                                                    <option value="daily">Daily</option>
+                                                    <option value="weekly">Weekly</option>
+                                                    <option value="monthly">Monthly</option>
+                                                </Select>
+                                            </HStack>
+                                        </Box>
 
-                    {/* Channel */}
-                    <Box>
-                        <HStack spacing={4}>
-                            <IconButton
-                                aria-label="Add channel"
-                                icon={<MdAdd />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Input
-                                name="channel"
-                                placeholder="Add channel"
-                                value={formData.channel}
-                                onChange={handleInputChange}
-                            />
-                        </HStack>
-                    </Box>
+                                        {/* Channel */}
+                                        <Box>
+                                            <HStack spacing={4}>
+                                                <IconButton
+                                                    aria-label="Add channel"
+                                                    icon={<MdAdd />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Input
+                                                    name="channel"
+                                                    placeholder="Add channel"
+                                                    value={formData.channel}
+                                                    onChange={handleInputChange}
+                                                />
+                                            </HStack>
+                                        </Box>
 
-                    {/* Location */}
-                    <Box>
-                        <HStack spacing={4}>
-                            <IconButton
-                                aria-label="Location"
-                                icon={<MdLocationOn />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Input
-                                name="location"
-                                placeholder="Add location"
-                                value={formData.location}
-                                onChange={handleInputChange}
-                            />
-                            <Switch
-                                name="is_online_meeting"
-                                isChecked={formData.is_online_meeting}
-                                onChange={handleInputChange}
-                            />
-                            <Text whiteSpace="nowrap">Online meeting</Text>
-                        </HStack>
-                    </Box>
+                                        {/* Location */}
+                                        <Box>
+                                            <HStack spacing={4}>
+                                                <IconButton
+                                                    aria-label="Location"
+                                                    icon={<MdLocationOn />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Input
+                                                    name="location"
+                                                    placeholder="Add location"
+                                                    value={formData.location}
+                                                    onChange={handleInputChange}
+                                                />
+                                                <Switch
+                                                    name="is_online_meeting"
+                                                    isChecked={formData.is_online_meeting}
+                                                    onChange={handleInputChange}
+                                                />
+                                                <Text whiteSpace="nowrap">Online meeting</Text>
+                                            </HStack>
+                                        </Box>
 
-                    {/* Description */}
-                    <Box>
-                        <HStack align="start" spacing={4}>
-                            <IconButton
-                                aria-label="Description"
-                                icon={<MdDescription />}
-                                variant="ghost"
-                                size="sm"
-                            />
-                            <Textarea
-                                name="description"
-                                placeholder="Type details for this new meeting"
-                                value={formData.description}
-                                onChange={handleInputChange}
-                                minH="200px"
-                                resize="vertical"
-                            />
-                        </HStack>
-                    </Box>
+                                        {/* Description */}
+                                        <Box>
+                                            <HStack align="start" spacing={4}>
+                                                <IconButton
+                                                    aria-label="Description"
+                                                    icon={<MdDescription />}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                />
+                                                <Textarea
+                                                    name="description"
+                                                    placeholder="Type details for this new meeting"
+                                                    value={formData.description}
+                                                    onChange={handleInputChange}
+                                                    minH="200px"
+                                                    resize="vertical"
+                                                />
+                                            </HStack>
+                                        </Box>
 
                     <HStack spacing={3} justify="flex-end">
                         {isDrawer && (
@@ -456,9 +456,9 @@ const CreateMeeting = ({ isDrawer = false, onSuccess, onCancel }) => {
                         >
                             Create Meeting
                         </Button>
-                    </HStack>
-                </VStack>
-            </form>
+                                            </HStack>
+                                    </VStack>
+                        </form>
         </Container>
     );
 };
