@@ -1,21 +1,21 @@
-import React, { 
-  useEffect, 
-  useRef, 
-  useState, 
-  useCallback, 
-  useMemo 
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo
 } from 'react';
-import { 
-  useParams, 
-  useLocation, 
-  useNavigate 
+import {
+  useParams,
+  useLocation,
+  useNavigate
 } from 'react-router-dom';
-import { 
-  Box, 
-  VStack, 
-  HStack, 
-  Text, 
-  Button, 
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  Button,
   useToast,
   Flex,
   Avatar,
@@ -48,17 +48,17 @@ import {
 } from '@chakra-ui/react';
 import io from 'socket.io-client';
 import Peer from 'simple-peer';
-import { 
-  FaMicrophone, 
-  FaMicrophoneSlash, 
-  FaVideo, 
-  FaVideoSlash, 
-  FaDesktop, 
-  FaUsers, 
-  FaComments, 
-  FaHandPaper, 
-  FaSignOutAlt, 
-  FaCog, 
+import {
+  FaMicrophone,
+  FaMicrophoneSlash,
+  FaVideo,
+  FaVideoSlash,
+  FaDesktop,
+  FaUsers,
+  FaComments,
+  FaHandPaper,
+  FaSignOutAlt,
+  FaCog,
   FaInfoCircle,
   FaExclamationTriangle,
   FaChartBar,
@@ -82,10 +82,10 @@ const NetworkQualityIndicator = ({ quality }) => {
   };
 
   return (
-    <Box 
-      w="10px" 
-      h="10px" 
-      borderRadius="full" 
+    <Box
+      w="10px"
+      h="10px"
+      borderRadius="full"
       bg={getColor()}
     />
   );
@@ -123,16 +123,16 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive 
       const analyser = audioContext.createAnalyser();
       const source = audioContext.createMediaStreamSource(stream);
       source.connect(analyser);
-      
+
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-      
+
       const updateAudioLevel = () => {
         analyser.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         setAudioLevel(average / 255);
         requestAnimationFrame(updateAudioLevel);
       };
-      
+
       updateAudioLevel();
       return () => audioContext.close();
     }
@@ -163,7 +163,7 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive 
           transform: isLocal ? 'scaleX(-1)' : 'none'
         }}
       />
-      
+
       <Box
         position="absolute"
         bottom={0}
@@ -178,14 +178,14 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive 
             <Avatar size="sm" name={userName} />
             <Text fontWeight="bold">{userName}</Text>
           </HStack>
-          
+
           <HStack spacing={2}>
             <Tooltip label={`Network Quality: ${Math.round(networkQuality)}%`}>
               <Tag colorScheme={networkQuality > 90 ? 'green' : networkQuality > 70 ? 'yellow' : 'red'}>
                 <TagLabel>{Math.round(networkQuality)}%</TagLabel>
               </Tag>
             </Tooltip>
-            
+
             <Tooltip label={isMuted ? 'Unmute' : 'Mute'}>
               <Tag
                 colorScheme={isMuted ? 'red' : 'green'}
@@ -195,7 +195,7 @@ const ParticipantTile = React.forwardRef(({ stream, userName, isLocal, isActive 
                 <TagLabel>{isMuted ? 'Muted' : 'Unmuted'}</TagLabel>
               </Tag>
             </Tooltip>
-            
+
             <Tooltip label={`Audio Level: ${Math.round(audioLevel * 100)}%`}>
               <Box
                 w="20px"
@@ -256,7 +256,7 @@ const VideoGrid = ({ peers, stream, userVideo, activeSpeakerId }) => {
       {peers.map((peer, index) => {
         // Safely access the peer's stream
         const peerStream = peer?.peer?.streams?.[0] || null;
-        
+
         return (
           <GridItem key={peer.peerId || index}>
             <ParticipantTile
@@ -274,9 +274,9 @@ const VideoGrid = ({ peers, stream, userVideo, activeSpeakerId }) => {
 
 // Define drawer components outside of MeetingRoom
 const ChatDrawer = ({ isOpen, onClose, userName, currentMessage, setCurrentMessage, sendMessage, chatMessages }) => (
-  <Drawer 
+  <Drawer
     isOpen={isOpen}
-    placement="right" 
+    placement="right"
     onClose={onClose}
     size="md"
     closeOnOverlayClick={false}
@@ -291,9 +291,9 @@ const ChatDrawer = ({ isOpen, onClose, userName, currentMessage, setCurrentMessa
       <DrawerBody>
         <VStack spacing={4} align="stretch" height="100%" overflowY="auto">
           {chatMessages.map((msg, index) => (
-            <Flex 
-              key={index} 
-              direction="column" 
+            <Flex
+              key={index}
+              direction="column"
               align={msg.userName === userName ? "flex-end" : "flex-start"}
             >
               <Box
@@ -341,9 +341,9 @@ const ChatDrawer = ({ isOpen, onClose, userName, currentMessage, setCurrentMessa
 );
 
 const TranscriptDrawer = ({ isOpen, onClose, generateTranscript, chatMessages }) => (
-  <Drawer 
+  <Drawer
     isOpen={isOpen}
-    placement="right" 
+    placement="right"
     onClose={onClose}
     size="md"
     closeOnOverlayClick={false}
@@ -356,7 +356,7 @@ const TranscriptDrawer = ({ isOpen, onClose, generateTranscript, chatMessages })
         <DrawerCloseButton onClick={onClose} />
       </DrawerHeader>
       <DrawerBody>
-        <Textarea 
+        <Textarea
           value={generateTranscript(chatMessages)}
           height="100%"
           isReadOnly
@@ -370,9 +370,9 @@ const TranscriptDrawer = ({ isOpen, onClose, generateTranscript, chatMessages })
 );
 
 const AnalyticsDrawer = ({ isOpen, onClose, analytics }) => (
-  <Drawer 
+  <Drawer
     isOpen={isOpen}
-    placement="right" 
+    placement="right"
     onClose={onClose}
     size="md"
     closeOnOverlayClick={false}
@@ -409,7 +409,7 @@ const AnalyticsDrawer = ({ isOpen, onClose, analytics }) => (
 );
 
 const ParticipantsModal = ({ isOpen, onClose, userName, peers, raisedHandUsers, muteParticipant, removeParticipant }) => (
-  <Modal 
+  <Modal
     isOpen={isOpen}
     onClose={onClose}
     closeOnOverlayClick={false}
@@ -429,7 +429,7 @@ const ParticipantsModal = ({ isOpen, onClose, userName, peers, raisedHandUsers, 
             { name: userName, isLocal: true },
             ...(peers || []).map(p => ({ name: p.userName, isLocal: false }))
           ].map((participant, index) => (
-            <Flex 
+            <Flex
               key={index}
               justifyContent="space-between"
               alignItems="center"
@@ -438,9 +438,9 @@ const ParticipantsModal = ({ isOpen, onClose, userName, peers, raisedHandUsers, 
               borderRadius="md"
             >
               <HStack spacing={3}>
-                <Avatar 
-                  name={participant.name} 
-                  size="sm" 
+                <Avatar
+                  name={participant.name}
+                  size="sm"
                   bg={participant.isLocal ? "green.500" : "blue.500"}
                 />
                 <Text fontWeight="medium">{participant.name}</Text>
@@ -484,10 +484,10 @@ const MeetingRoom = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
-  const { 
-    isOpen: isParticipantsOpen, 
-    onOpen: onParticipantsOpen, 
-    onClose: onParticipantsClose 
+  const {
+    isOpen: isParticipantsOpen,
+    onOpen: onParticipantsOpen,
+    onClose: onParticipantsClose
   } = useDisclosure({
     defaultIsOpen: false
   });
@@ -496,7 +496,7 @@ const MeetingRoom = () => {
   // User and meeting state
   const [userName, setUserName] = useState(location.state?.userName || 'Anonymous');
   const [meetingDetails, setMeetingDetails] = useState(null);
-  
+
   // Media and connection states
   const [peers, setPeers] = useState([]);
   const [stream, setStream] = useState(null);
@@ -504,16 +504,16 @@ const MeetingRoom = () => {
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [screenShare, setScreenShare] = useState(null);
   const [activeSpeakerId, setActiveSpeakerId] = useState(null);
-  
+
   // Advanced meeting features
   const [isRecording, setIsRecording] = useState(false);
   const [recordedChunks, setRecordedChunks] = useState([]);
   const [raisedHandUsers, setRaisedHandUsers] = useState([]);
-  
+
   // Audio and network states
   const [audioLevels, setAudioLevels] = useState({});
   const [networkQualities, setNetworkQualities] = useState({});
-  
+
   // Refs for managing connections
   const socketRef = useRef();
   const userVideo = useRef();
@@ -527,7 +527,7 @@ const MeetingRoom = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [meetingStartTime, setMeetingStartTime] = useState(null);
   const [meetingDuration, setMeetingDuration] = useState(0);
-  
+
   // Modify drawer states
   const [drawerStates, setDrawerStates] = useState({
     chat: false,
@@ -554,19 +554,19 @@ const MeetingRoom = () => {
   // Prepare sorted participants for rendering
   const sortedParticipants = useMemo(() => {
     const allParticipants = [
-      { 
-        stream, 
-        userName: 'You', 
-        isLocal: true, 
+      {
+        stream,
+        userName: 'You',
+        isLocal: true,
         muted: !audioEnabled,
         id: 'local',
         audioLevel: audioLevels['local'] || 0,
         networkQuality: 'excellent'
       },
-      ...peers.map(({ peer, userName: peerName, peerId }) => ({ 
-        stream: peer.streams?.[0], 
-        userName: peerName, 
-        isLocal: false, 
+      ...peers.map(({ peer, userName: peerName, peerId }) => ({
+        stream: peer.streams?.[0],
+        userName: peerName,
+        isLocal: false,
         muted: false,
         id: peerId,
         audioLevel: audioLevels[peerId] || 0,
@@ -590,7 +590,7 @@ const MeetingRoom = () => {
         overflowY="auto"
         bg="gray.900"
       >
-        <VideoGrid 
+        <VideoGrid
           peers={sortedParticipants.slice(1)}
           stream={sortedParticipants[0]?.stream}
           userVideo={userVideo}
@@ -607,10 +607,10 @@ const MeetingRoom = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(mediaStream);
-      
+
       analyserRef.current = audioContextRef.current.createAnalyser();
       source.connect(analyserRef.current);
-      
+
       analyserRef.current.fftSize = 256;
     }
 
@@ -620,7 +620,7 @@ const MeetingRoom = () => {
     const detectAudioLevels = () => {
       analyserRef.current.getByteFrequencyData(dataArray);
       const averageLevel = dataArray.reduce((sum, value) => sum + value, 0) / bufferLength / 255;
-      
+
       // Update local audio level
       setAudioLevels(prev => ({
         ...prev,
@@ -669,11 +669,11 @@ const MeetingRoom = () => {
       });
 
       peer.on('signal', signal => {
-        socketRef.current?.emit('sending-signal', { 
-          userToSignal, 
-          callerId, 
+        socketRef.current?.emit('sending-signal', {
+          userToSignal,
+          callerId,
           signal,
-          userName 
+          userName
         });
       });
 
@@ -745,19 +745,19 @@ const MeetingRoom = () => {
   // Setup WebRTC and Socket connection
   useEffect(() => {
     if (!meetingDetails) return;
-
+    console.log("=======STEp 1=====")
     let localStream = null;
-    
+
     const setupSocketListeners = (stream) => {
       socketRef.current = io('http://localhost:5001');
-      
+      console.log("=======STEp 2=====")
       // Join room after getting media stream
       socketRef.current.emit('join-room', {
         roomId,
         userName,
         peerId: socketRef.current.id
       });
-
+      
       // Listen for existing users in the room
       socketRef.current.on('all-users', users => {
         console.log('Received all users:', users);
@@ -820,6 +820,8 @@ const MeetingRoom = () => {
       });
     };
 
+    setupSocketListeners({});
+
     const setupMediaStream = async () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
@@ -834,16 +836,16 @@ const MeetingRoom = () => {
         console.log('Getting user media with constraints:', constraints);
         const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
         console.log('Got media stream:', mediaStream);
-        
+
         localStream = mediaStream;
         setStream(mediaStream);
-        
+
         if (userVideo.current) {
           userVideo.current.srcObject = mediaStream;
         }
 
         setupAudioLevelDetection(mediaStream);
-        setupSocketListeners(mediaStream);
+        // setupSocketListeners(mediaStream); // mee comment
 
       } catch (error) {
         console.error('Media stream setup error:', error);
@@ -883,34 +885,34 @@ const MeetingRoom = () => {
       // Stop screen share
       screenShare.getTracks().forEach(track => track.stop());
       setScreenShare(null);
-      
+
       // Switch back to camera stream
       const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
       setStream(videoStream);
-      
+
       // Notify peers about stream change
-      socketRef.current.emit('stream-changed', { 
-        roomId, 
-        streamType: 'camera' 
+      socketRef.current.emit('stream-changed', {
+        roomId,
+        streamType: 'camera'
       });
     } else {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-          video: true 
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true
         });
-        
+
         // Stop original video stream
         stream.getTracks().forEach(track => track.stop());
-        
+
         setScreenShare(screenStream);
         setStream(screenStream);
-        
+
         // Notify peers about screen share
-        socketRef.current.emit('stream-changed', { 
-          roomId, 
-          streamType: 'screen' 
+        socketRef.current.emit('stream-changed', {
+          roomId,
+          streamType: 'screen'
         });
-        
+
         // Handle screen share end
         screenStream.getVideoTracks()[0].onended = () => {
           toggleScreenShare();
@@ -932,31 +934,31 @@ const MeetingRoom = () => {
 
     const mediaRecorder = new MediaRecorder(stream);
     mediaRecorderRef.current = mediaRecorder;
-    
+
     const chunks = [];
     mediaRecorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
         chunks.push(e.data);
       }
     };
-    
+
     mediaRecorder.onstop = () => {
       const blob = new Blob(chunks, { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
-      
+
       // Offer download
       const a = document.createElement('a');
       a.href = url;
       a.download = `meeting_recording_${new Date().toISOString()}.webm`;
       a.click();
-      
+
       setRecordedChunks(chunks);
       setIsRecording(false);
     };
 
     mediaRecorder.start();
     setIsRecording(true);
-    
+
     toast({
       title: "Recording Started",
       description: "Meeting is now being recorded",
@@ -973,23 +975,23 @@ const MeetingRoom = () => {
 
   // Participant Management
   const raiseHand = () => {
-    socketRef.current.emit('raise-hand', { 
-      roomId, 
-      userName 
+    socketRef.current.emit('raise-hand', {
+      roomId,
+      userName
     });
   };
 
   const muteParticipant = (participantId) => {
-    socketRef.current.emit('mute-participant', { 
-      roomId, 
-      participantId 
+    socketRef.current.emit('mute-participant', {
+      roomId,
+      participantId
     });
   };
 
   const removeParticipant = (participantId) => {
-    socketRef.current.emit('remove-participant', { 
-      roomId, 
-      participantId 
+    socketRef.current.emit('remove-participant', {
+      roomId,
+      participantId
     });
   };
 
@@ -999,7 +1001,7 @@ const MeetingRoom = () => {
 
     socketRef.current.on('hand-raised', ({ userName }) => {
       setRaisedHandUsers(prev => [...prev, userName]);
-      
+
       toast({
         title: "Hand Raised",
         description: `${userName} wants to speak`,
@@ -1025,7 +1027,7 @@ const MeetingRoom = () => {
 
   // Utility functions for transcript and analytics
   const generateTranscript = (messages) => {
-    return messages.map(msg => 
+    return messages.map(msg =>
       `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.userName}: ${msg.text}`
     ).join('\n');
   };
@@ -1038,8 +1040,8 @@ const MeetingRoom = () => {
       meetingDuration: duration,
       mostActiveParticipant: participants.reduce((max, participant) => {
         const messageCount = messages.filter(m => m.userName === participant.name).length;
-        return messageCount > max.messageCount 
-          ? { name: participant.name, messageCount } 
+        return messageCount > max.messageCount
+          ? { name: participant.name, messageCount }
           : max;
       }, { name: '', messageCount: 0 })
     };
@@ -1129,10 +1131,10 @@ const MeetingRoom = () => {
   const leaveMeeting = () => {
     // Stop all media tracks
     stream?.getTracks().forEach(track => track.stop());
-    
+
     // Disconnect socket
     socketRef.current?.disconnect();
-    
+
     // Navigate back to meetings page
     navigate('/meetings');
   };
@@ -1211,7 +1213,7 @@ const MeetingRoom = () => {
         {/* Video Grid */}
         <Box flex="1" bg="gray.800" position="relative">
           {renderParticipantLayout()}
-          
+
           {/* Floating Controls */}
           <HStack
             position="absolute"
@@ -1288,7 +1290,7 @@ const MeetingRoom = () => {
       </Flex>
 
       {/* Drawers */}
-      <ChatDrawer 
+      <ChatDrawer
         isOpen={drawerStates.chat}
         onClose={() => handleDrawerClose('chat')}
         userName={userName}
@@ -1297,13 +1299,13 @@ const MeetingRoom = () => {
         sendMessage={sendMessage}
         chatMessages={chatMessages}
       />
-      <TranscriptDrawer 
+      <TranscriptDrawer
         isOpen={drawerStates.transcript}
         onClose={() => handleDrawerClose('transcript')}
         generateTranscript={generateTranscript}
         chatMessages={chatMessages}
       />
-      <AnalyticsDrawer 
+      <AnalyticsDrawer
         isOpen={drawerStates.analytics}
         onClose={() => handleDrawerClose('analytics')}
         analytics={calculateMeetingAnalytics(
@@ -1312,7 +1314,7 @@ const MeetingRoom = () => {
           meetingDuration
         )}
       />
-      <ParticipantsModal 
+      <ParticipantsModal
         isOpen={drawerStates.participants}
         onClose={() => handleDrawerClose('participants')}
         userName={userName}

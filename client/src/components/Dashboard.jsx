@@ -594,7 +594,7 @@ const Dashboard = () => {
                 </TabPanels>
             </Tabs>
         </Box>
-    );
+  );
 };
 
 export default Dashboard;

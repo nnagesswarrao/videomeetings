@@ -32,16 +32,16 @@ const JoinMeeting = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5001/api/meetings/${meetingId}/join`, {
-                method: 'POST',
+            const response = await fetch(`http://localhost:5001/api/meetings/${meetingId}`, {
+                method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ name })
+                // body: JSON.stringify({ name })
             });
 
             if (response.ok) {
-                navigate(`/meeting-room/${meetingId}`);
+                navigate(`/meeting/${meetingId}`);
             } else {
                 throw new Error('Invalid meeting ID');
             }

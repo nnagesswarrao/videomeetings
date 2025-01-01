@@ -81,8 +81,12 @@ io.on('connection', (socket) => {
 
     // Room and User Management
     socket.on('join-room', (data) => {
+
+
         const { roomId, userName, meetingId } = data;
-        console.log(`Detailed Join Room Event: 
+
+
+        console.log(data,`Detailed Join Room Event: 
             Room ID: ${roomId}, 
             User Name: ${userName}, 
             Socket ID: ${socket.id}`);
